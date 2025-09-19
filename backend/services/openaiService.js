@@ -28,8 +28,6 @@ class OpenAIService {
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
       });
 
       const responseText = completion.choices[0].message.content;
