@@ -10,6 +10,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Valideer OpenAI configuratie bij opstarten
+if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
+  console.warn('⚠️  WAARSCHUWING: OpenAI API key niet correct geconfigureerd in .env file');
+  console.warn('   AI recepten zullen fallback functionaliteit gebruiken');
+} else {
+  console.log('✅ OpenAI API key geconfigureerd');
+}
+
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,

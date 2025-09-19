@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Recipe = require('../models/Recipe');
 const Kitchen = require('../models/Kitchen');
+const OpenAIService = require('../services/openaiService');
 
-// POST - Genereer recept met AI (placeholder voor nu)
+// POST - Genereer recept met AI
 router.post('/generate', async (req, res) => {
   try {
     const { userId, ingredients, request } = req.body;
@@ -17,12 +18,43 @@ router.post('/generate', async (req, res) => {
     // Haal keukeninformatie op
     const kitchen = await Kitchen.findOne({ userId });
     
-    // Voor nu maken we een mock recept - later vervang je dit met echte AI
-    const mockRecipe = await generateMockRecipe(userId, ingredients, request, kitchen);
+    // Initialiseer OpenAI service
+    const openaiService = new OpenAIService();
     
-    res.json(mockRecipe);
+    let recipeData;
+    try {
+      // Probeer AI recept te genereren
+      recipeData = await openaiService.generateRecipe(ingredients, request, kitchen);
+    } catch (aiError) {
+      console.error('AI generation failed, using fallback:', aiError);
+      // Gebruik fallback als AI faalt
+      recipeData = openaiService.createFallbackRecipe(ingredients, request);
+    }
+    
+    // Sla het gegenereerde recept op
+    const recipe = new Recipe({
+      userId,
+      title: recipeData.title,
+      ingredients: recipeData.ingredients,
+      userIngredients: ingredients,
+      userRequest: request,
+      steps: recipeData.steps,
+      totalTime: recipeData.totalTime,
+      difficulty: recipeData.difficulty,
+      servings: recipeData.servings,
+      kitchenRequirements: recipeData.kitchenRequirements,
+      aiGenerated: true
+    });
+    
+    const savedRecipe = await recipe.save();
+    res.json(savedRecipe);
+    
   } catch (error) {
-    res.status(500).json({ message: 'Fout bij genereren recept', error: error.message });
+    console.error('Recipe generation error:', error);
+    res.status(500).json({ 
+      message: 'Fout bij genereren recept', 
+      error: error.message 
+    });
   }
 });
 
@@ -67,54 +99,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server fout', error: error.message });
   }
 });
-
-// Mock functie voor recept generatie - vervang later met echte AI
-async function generateMockRecipe(userId, ingredients, request, kitchen) {
-  const mockSteps = [
-    {
-      stepNumber: 1,
-      description: `Verwarm de ${kitchen?.appliances?.find(a => a.type === 'oven')?.name || 'oven'} voor op 180°C`,
-      duration: 10,
-      temperature: '180°C',
-      appliance: 'oven',
-      timer: true,
-      tips: ['Zorg dat de oven goed is voorverwarmd voor het beste resultaat']
-    },
-    {
-      stepNumber: 2,
-      description: `Bereid de ingrediënten voor: ${ingredients}`,
-      duration: 5,
-      cookware: 'snijplank',
-      tips: ['Snij alles in gelijke stukken voor gelijkmatige garing']
-    },
-    {
-      stepNumber: 3,
-      description: `Begin met koken volgens je verzoek: ${request}`,
-      duration: 20,
-      temperature: 'medium vuur',
-      appliance: 'fornuis',
-      cookware: 'pan',
-      timer: true,
-      tips: ['Roer regelmatig om aanbranden te voorkomen']
-    }
-  ];
-
-  const recipe = new Recipe({
-    userId,
-    title: `Gerecht met ${ingredients.split(',')[0]}`,
-    userIngredients: ingredients,
-    userRequest: request,
-    steps: mockSteps,
-    totalTime: mockSteps.reduce((total, step) => total + (step.duration || 0), 0),
-    difficulty: 'gemiddeld',
-    servings: 2,
-    kitchenRequirements: {
-      appliances: ['oven', 'fornuis'],
-      cookware: ['pan', 'snijplank']
-    }
-  });
-
-  return await recipe.save();
-}
 
 module.exports = router;
