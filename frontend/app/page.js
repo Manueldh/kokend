@@ -1,103 +1,125 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [ingredienten, setIngredienten] = useState('');
+  const [gerecht, setGerecht] = useState('');
+  const [recept, setRecept] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/recipes/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ingredients: ingredienten,
+          dish: gerecht,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRecept(data);
+      } else {
+        console.error('Error generating recipe');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-8 max-w-4xl">
+      <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+        🍳 Kokend - Je AI Kook Assistent
+      </h1>
+      
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-lg font-medium text-gray-700 mb-2">
+              Welke ingrediënten heb je?
+            </label>
+            <textarea
+              value={ingredienten}
+              onChange={(e) => setIngredienten(e.target.value)}
+              placeholder="Bijvoorbeeld: kip, paprika, rijst, knoflook..."
+              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={4}
+              required
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          
+          <div>
+            <label className="block text-lg font-medium text-gray-700 mb-2">
+              Wat wil je maken?
+            </label>
+            <input
+              type="text"
+              value={gerecht}
+              onChange={(e) => setGerecht(e.target.value)}
+              placeholder="Bijvoorbeeld: curry, pasta, stir-fry..."
+              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            Read our docs
-          </a>
+            {loading ? '🤖 AI denkt na...' : '✨ Genereer Recept'}
+          </button>
+        </form>
+      </div>
+      
+      {recept && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">
+            📋 Je Recept: {recept.dish}
+          </h2>
+          
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-3 text-green-700">🥗 Ingrediënten:</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {recept.ingredients?.map((ingredient, index) => (
+                <li key={index} className="text-gray-700">{ingredient}</li>
+              ))}
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold mb-3 text-blue-700">👨‍🍳 Stappen:</h3>
+            <div className="space-y-4">
+              {recept.steps?.map((step, index) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-blue-800">
+                      Stap {index + 1}
+                    </span>
+                    {step.timer && (
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm">
+                        ⏱️ {step.timer}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-700">{step.instruction}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
     </div>
   );
 }
