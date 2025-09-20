@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Square, RotateCcw, Flame, ThermometerSun, ChefHat, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Play, Pause, Square, RotateCcw, Flame, ThermometerSun, ChefHat, Clock, X } from "lucide-react";
 
 const BURNER_COLORS = {
   off: 'bg-gray-300',
@@ -36,6 +37,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   const [globalTimer, setGlobalTimer] = useState(0);
   const [cookingStarted, setCookingStarted] = useState(false);
   const [nextSuggestion, setNextSuggestion] = useState(null);
+  const [showSuggestionPopup, setShowSuggestionPopup] = useState(false);
   const intervalRefs = useRef({});
   const audioRef = useRef(null);
   const globalTimerRef = useRef(null);
@@ -59,6 +61,13 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
       updateNextSuggestion();
     }
   }, [actualBurners, cookingStarted]);
+
+  // Show suggestion popup on mobile when new suggestion appears
+  useEffect(() => {
+    if (nextSuggestion && window.innerWidth < 1024) {
+      setShowSuggestionPopup(true);
+    }
+  }, [nextSuggestion]);
 
   const startGlobalTimer = () => {
     globalTimerRef.current = setInterval(() => {
@@ -339,7 +348,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
   return (
     <div className="space-y-4">
-      {/* Global Timer and Smart Suggestions - Only when showing stove interface */}
+      {/* Global Timer and Smart Suggestions - Only on desktop when showing stove interface */}
       {showStoveInterface && cookingStarted && (
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <CardContent className="p-4">
@@ -353,8 +362,9 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
               </Badge>
             </div>
             
+            {/* Desktop suggestions - only show on larger screens */}
             {nextSuggestion && (
-              <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <div className="hidden lg:block bg-white rounded-lg p-3 border border-blue-200">
                 <div className="flex items-start space-x-2">
                   <ChefHat className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="flex-1">
@@ -367,9 +377,91 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                 </div>
               </div>
             )}
+
+            {/* Mobile suggestion trigger - show button on small screens when suggestion available */}
+            {nextSuggestion && (
+              <div className="lg:hidden">
+                <Button 
+                  onClick={() => setShowSuggestionPopup(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
+                >
+                  <ChefHat className="h-4 w-4 mr-2" />
+                  Nieuwe kook-tip beschikbaar!
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Mobile Suggestion Popup */}
+      <Dialog open={showSuggestionPopup} onOpenChange={setShowSuggestionPopup}>
+        <DialogContent className="mx-4 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-blue-800">
+              <ChefHat className="h-5 w-5" />
+              <span>Slimme kook-tip</span>
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              {nextSuggestion?.reason}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {nextSuggestion && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="font-medium text-gray-800 mb-2">
+                  Stap {nextSuggestion.step.stepNumber}:
+                </div>
+                <div className="text-sm text-gray-600">
+                  {nextSuggestion.step.description}
+                </div>
+                
+                {nextSuggestion.step.duration && (
+                  <div className="flex items-center mt-2 space-x-2">
+                    <Badge variant="outline" className="text-xs">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {nextSuggestion.step.duration} min
+                    </Badge>
+                    {nextSuggestion.step.temperature && (
+                      <Badge variant="outline" className="text-xs">
+                        <ThermometerSun className="h-3 w-3 mr-1" />
+                        {nextSuggestion.step.temperature}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => setShowSuggestionPopup(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Later
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowSuggestionPopup(false);
+                    // Scroll to steps section to make it easy to drag
+                    setTimeout(() => {
+                      const stepsElement = document.querySelector('[data-steps-section]');
+                      if (stepsElement) {
+                        stepsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }, 100);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Ga naar stappen
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Notifications */}
       {notifications.length > 0 && (
@@ -484,7 +576,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
       {/* Steps Section - Only show when showSteps is true */}
       {showSteps && (
-        <Card>
+        <Card data-steps-section>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <ChefHat className="h-3 w-3 md:h-4 md:w-4" />
