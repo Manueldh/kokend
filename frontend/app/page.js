@@ -6,17 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle } from "lucide-react";
+import DigitalStove from "@/components/DigitalStove";
 
 export default function HomePage() {
   const [ingredienten, setIngredienten] = useState('');
   const [gerecht, setGerecht] = useState('');
   const [recept, setRecept] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setCompletedSteps([]); // Reset completed steps
     
     try {
       const response = await fetch('http://localhost:3001/api/recipes/generate', {
@@ -44,6 +48,10 @@ export default function HomePage() {
     }
   };
 
+  const handleStepComplete = (stepNumber) => {
+    setCompletedSteps(prev => [...new Set([...prev, stepNumber])]);
+  };
+
   return (
     <div className="space-y-8">
       {/* Hero Section */}
@@ -53,8 +61,7 @@ export default function HomePage() {
           <h1 className="text-5xl font-bold text-gray-800">Kokend</h1>
         </div>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Je persoonlijke AI kook-assistent. Vertel welke ingrediënten je hebt en wat je wilt maken, 
-          en krijg een stappenplan met timers terug!
+          Je persoonlijke AI kook-assistent met digitaal fornuis. Krijg stap-voor-stap instructies met slimme timers!
         </p>
       </div>
 
@@ -66,7 +73,7 @@ export default function HomePage() {
             <span>Genereer een recept</span>
           </CardTitle>
           <CardDescription>
-            Vul je ingrediënten en gewenste gerecht in om een persoonlijk recept te krijgen
+            Vul je ingrediënten en gewenste gerecht in om een persoonlijk recept met slimme timers te krijgen
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -103,12 +110,12 @@ export default function HomePage() {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  AI denkt na...
+                  AI maakt je recept...
                 </>
               ) : (
                 <>
                   <ChefHat className="h-4 w-4 mr-2" />
-                  Genereer Recept
+                  Genereer Recept met Slimme Timers
                 </>
               )}
             </Button>
@@ -116,100 +123,65 @@ export default function HomePage() {
         </CardContent>
       </Card>
 
-      {/* Recipe Result */}
+      {/* Recipe Result with Digital Stove */}
       {recept && (
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl text-orange-700">
-                🍽️ {recept.title}
-              </CardTitle>
-              <div className="flex items-center space-x-6 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{recept.totalTime} min</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
-                  <span>{recept.servings} porties</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Utensils className="h-4 w-4" />
-                  <span className="capitalize">{recept.difficulty}</span>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
+          {/* Mobile: Fornuis bovenaan */}
+          <div className="lg:hidden">
+            <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={false} />
+          </div>
 
-          {/* Recipe Steps */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-orange-600" />
-                <span>Stappenplan</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recept.steps?.map((step, index) => (
-                  <div key={index} className="border-l-4 border-orange-500 bg-orange-50/50 p-4 rounded-r-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-gray-800">
-                        Stap {step.stepNumber}
-                      </h4>
-                      {step.timer && step.duration && (
-                        <div className="flex items-center space-x-1 bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm">
-                          <Timer className="h-3 w-3" />
-                          <span>{step.duration} min</span>
-                        </div>
-                      )}
+          {/* Main Content Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recipe Info + Steps */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Recipe Header */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl text-orange-700">
+                    🍽️ {recept.title}
+                  </CardTitle>
+                  <div className="flex items-center space-x-6 text-sm text-gray-600">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{recept.totalTime} min</span>
                     </div>
-                    
-                    <p className="text-gray-700 mb-3">{step.description}</p>
-                    
-                    {/* Step Details */}
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {step.temperature && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">🌡️ Temperatuur:</span>
-                          <span>{step.temperature}</span>
-                        </div>
-                      )}
-                      {step.appliance && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">🔧 Apparaat:</span>
-                          <span>{step.appliance}</span>
-                        </div>
-                      )}
-                      {step.cookware && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">🍳 Benodigdheden:</span>
-                          <span>{step.cookware}</span>
-                        </div>
-                      )}
+                    <div className="flex items-center space-x-1">
+                      <Users className="h-4 w-4" />
+                      <span>{recept.servings} porties</span>
                     </div>
-
-                    {/* Tips */}
-                    {step.tips && step.tips.length > 0 && (
-                      <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                        <div className="flex items-start space-x-2">
-                          <Lightbulb className="h-4 w-4 text-blue-600 mt-0.5" />
-                          <div>
-                            <span className="font-medium text-blue-800">Tips:</span>
-                            <ul className="list-disc list-inside text-blue-700 text-sm mt-1">
-                              {step.tips.map((tip, tipIndex) => (
-                                <li key={tipIndex}>{tip}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-1">
+                      <Utensils className="h-4 w-4" />
+                      <span className="capitalize">{recept.difficulty}</span>
+                    </div>
                   </div>
-                ))}
+                </CardHeader>
+              </Card>
+
+              {/* Recipe Steps with Stove Controls */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <ChefHat className="h-5 w-5 text-orange-600" />
+                    <span>Stappenplan</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Sleep stappen naar het digitaal fornuis voor de beste timing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={true} showStoveInterface={false} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Desktop: Fornuis rechts */}
+            <div className="hidden lg:block">
+              <div className="sticky top-8">
+                <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={false} showStoveInterface={true} />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
