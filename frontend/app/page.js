@@ -16,11 +16,27 @@ export default function HomePage() {
   const [recept, setRecept] = useState(null);
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
+  
+  // Shared burner state for all DigitalStove components
+  const [burners, setBurners] = useState([
+    { id: 1, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+    { id: 2, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+    { id: 3, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+    { id: 4, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' }
+  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setCompletedSteps([]); // Reset completed steps
+    
+    // Reset burner state for new recipe
+    setBurners([
+      { id: 1, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+      { id: 2, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+      { id: 3, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
+      { id: 4, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' }
+    ]);
     
     try {
       const response = await fetch('http://localhost:3001/api/recipes/generate', {
@@ -128,7 +144,14 @@ export default function HomePage() {
         <div className="space-y-6">
           {/* Mobile: Fornuis bovenaan */}
           <div className="lg:hidden">
-            <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={false} />
+            <DigitalStove 
+              recipe={recept} 
+              onStepComplete={handleStepComplete} 
+              showSteps={false} 
+              showStoveInterface={true}
+              burners={burners}
+              setBurners={setBurners}
+            />
           </div>
 
           {/* Main Content Layout */}
@@ -170,7 +193,14 @@ export default function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={true} showStoveInterface={false} />
+                  <DigitalStove 
+                    recipe={recept} 
+                    onStepComplete={handleStepComplete} 
+                    showSteps={true} 
+                    showStoveInterface={false}
+                    burners={burners}
+                    setBurners={setBurners}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -178,7 +208,14 @@ export default function HomePage() {
             {/* Desktop: Fornuis rechts */}
             <div className="hidden lg:block">
               <div className="sticky top-8">
-                <DigitalStove recipe={recept} onStepComplete={handleStepComplete} showSteps={false} showStoveInterface={true} />
+                <DigitalStove 
+                  recipe={recept} 
+                  onStepComplete={handleStepComplete} 
+                  showSteps={false} 
+                  showStoveInterface={true}
+                  burners={burners}
+                  setBurners={setBurners}
+                />
               </div>
             </div>
           </div>

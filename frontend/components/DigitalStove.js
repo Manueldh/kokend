@@ -20,13 +20,17 @@ const BURNER_INTENSITIES = {
   high: 'opacity-100 animate-pulse'
 };
 
-export default function DigitalStove({ recipe, onStepComplete, showSteps = true, showStoveInterface = true }) {
-  const [burners, setBurners] = useState([
+export default function DigitalStove({ recipe, onStepComplete, showSteps = true, showStoveInterface = true, burners, setBurners }) {
+  // Use prop burners if provided, otherwise use internal state
+  const [internalBurners, setInternalBurners] = useState([
     { id: 1, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
     { id: 2, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
     { id: 3, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' },
     { id: 4, active: false, step: null, timer: 0, totalTime: 0, currentAction: null, intensity: 'off', cookware: '' }
   ]);
+
+  const actualBurners = burners || internalBurners;
+  const setActualBurners = setBurners || setInternalBurners;
 
   const [notifications, setNotifications] = useState([]);
   const [globalTimer, setGlobalTimer] = useState(0);
@@ -46,7 +50,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
   // Start global cooking timer when first burner starts
   useEffect(() => {
-    const activeBurners = burners.filter(b => b.active);
+    const activeBurners = actualBurners.filter(b => b.active);
     if (activeBurners.length > 0 && !cookingStarted) {
       setCookingStarted(true);
       startGlobalTimer();
@@ -54,7 +58,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
       // All burners stopped, check for next suggestion
       updateNextSuggestion();
     }
-  }, [burners, cookingStarted]);
+  }, [actualBurners, cookingStarted]);
 
   const startGlobalTimer = () => {
     globalTimerRef.current = setInterval(() => {
@@ -73,7 +77,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
     if (!recipe?.steps) return;
     
     const availableSteps = getAvailableSteps();
-    const activeBurners = burners.filter(b => b.active);
+    const activeBurners = actualBurners.filter(b => b.active);
     
     if (availableSteps.length === 0) {
       setNextSuggestion(null);
@@ -138,29 +142,32 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   };
 
   const startTimer = (burnerId, step) => {
-    const burner = burners.find(b => b.id === burnerId);
+    const burner = actualBurners.find(b => b.id === burnerId);
     if (burner.active) return; // Al actief
 
     const intensity = getIntensityFromTemperature(step.temperature);
     
-    setBurners(prev => prev.map(b => 
-      b.id === burnerId 
-        ? { 
-            ...b, 
-            active: true, 
-            step, 
-            timer: 0, 
-            totalTime: step.duration * 60, // Convert to seconds
-            intensity,
-            cookware: step.cookware || '',
-            currentAction: step.timerActions?.[0] || null
-          }
-        : b
-    ));
+    setActualBurners(prev => {
+      const newBurners = prev.map(b => 
+        b.id === burnerId 
+          ? { 
+              ...b, 
+              active: true, 
+              step, 
+              timer: 0, 
+              totalTime: step.duration * 60, // Convert to seconds
+              intensity,
+              cookware: step.cookware || '',
+              currentAction: step.timerActions?.[0] || null
+            }
+          : b
+      );
+      return newBurners;
+    });
 
     // Start interval for this burner
     intervalRefs.current[burnerId] = setInterval(() => {
-      setBurners(prev => prev.map(b => {
+      setActualBurners(prev => prev.map(b => {
         if (b.id !== burnerId || !b.active) return b;
 
         const newTimer = b.timer + 1;
@@ -209,7 +216,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
       delete intervalRefs.current[burnerId];
     }
 
-    setBurners(prev => prev.map(b => 
+    setActualBurners(prev => prev.map(b => 
       b.id === burnerId 
         ? { ...b, active: false, timer: 0, step: null, intensity: 'off', cookware: '', currentAction: null }
         : b
@@ -222,16 +229,16 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
       delete intervalRefs.current[burnerId];
     }
 
-    setBurners(prev => prev.map(b => 
+    setActualBurners(prev => prev.map(b => 
       b.id === burnerId ? { ...b, active: false, intensity: 'off' } : b
     ));
   };
 
   const resumeTimer = (burnerId) => {
-    const burner = burners.find(b => b.id === burnerId);
+    const burner = actualBurners.find(b => b.id === burnerId);
     if (!burner.step) return;
 
-    setBurners(prev => prev.map(b => 
+    setActualBurners(prev => prev.map(b => 
       b.id === burnerId 
         ? { ...b, active: true, intensity: getIntensityFromTemperature(b.step.temperature) }
         : b
@@ -239,7 +246,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
     // Resume interval
     intervalRefs.current[burnerId] = setInterval(() => {
-      setBurners(prev => prev.map(b => {
+      setActualBurners(prev => prev.map(b => {
         if (b.id !== burnerId || !b.active) return b;
 
         const newTimer = b.timer + 1;
@@ -303,7 +310,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   const getAvailableSteps = () => {
     if (!recipe?.steps) return [];
     
-    const usedSteps = burners.filter(b => b.step).map(b => b.step.stepNumber);
+    const usedSteps = actualBurners.filter(b => b.step).map(b => b.step.stepNumber);
     return recipe.steps.filter(step => 
       !usedSteps.includes(step.stepNumber)
     );
@@ -317,7 +324,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   const getUsedSteps = () => {
     if (!recipe?.steps) return [];
     
-    const usedSteps = burners.filter(b => b.step).map(b => b.step.stepNumber);
+    const usedSteps = actualBurners.filter(b => b.step).map(b => b.step.stepNumber);
     return recipe.steps.filter(step => 
       usedSteps.includes(step.stepNumber)
     );
@@ -408,7 +415,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
           <CardContent>
             {/* Stove Top - 2x2 Grid */}
             <div className="grid grid-cols-2 gap-3 md:gap-6 mb-4 md:mb-6 bg-gray-800 p-3 md:p-6 rounded-xl">
-              {burners.map(burner => (
+              {actualBurners.map(burner => (
                 <div key={burner.id} className="text-center">
                   {/* Burner Circle */}
                   <div className={`
@@ -433,7 +440,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
                   {/* Burner Info */}
                   <div className="text-white text-xs min-h-12 md:min-h-16">
-                    {burner.step && (
+                    {burner.step ? (
                       <>
                         <div className="font-semibold mb-1">
                           Stap {burner.step.stepNumber}
@@ -443,6 +450,8 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                           {formatTime(burner.timer)} / {formatTime(burner.totalTime)}
                         </div>
                       </>
+                    ) : (
+                      <div className="text-gray-400 text-xs">Beschikbaar</div>
                     )}
                   </div>
 
@@ -485,7 +494,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
           <CardContent>
             <div className="space-y-2 md:space-y-3">
               {getAllSteps().map(step => {
-                const burnerWithStep = burners.find(b => b.step?.stepNumber === step.stepNumber);
+                const burnerWithStep = actualBurners.find(b => b.step?.stepNumber === step.stepNumber);
                 const isInUse = !!burnerWithStep;
                 
                 return (
@@ -522,7 +531,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                       <div className="flex justify-center">
                         <div className="flex space-x-2">
                           {[1, 2, 3, 4].map(burnerId => {
-                            const burner = burners.find(b => b.id === burnerId);
+                            const burner = actualBurners.find(b => b.id === burnerId);
                             const available = !burner.step;
                             return (
                               <Button
