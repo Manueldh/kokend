@@ -66,31 +66,84 @@ Geef het recept terug in dit exacte JSON formaat:
   "steps": [
     {
       "stepNumber": 1,
-      "description": "Uitgebreide beschrijving van de stap",
+      "description": "Uitgebreide beschrijving van de stap voor beginners",
       "duration": 10,
       "temperature": "180°C of medium vuur",
       "appliance": "oven/fornuis/magnetron etc",
       "cookware": "pan/ovenschaal etc",
+      "burner": 1,
       "timer": true,
-      "tips": ["nuttige tip voor deze stap"]
+      "category": "prep/stove/oven/finish",
+      "timerActions": [
+        {
+          "time": 2,
+          "action": "Draai het vlees om voor gelijkmatige garing",
+          "type": "instruction"
+        },
+        {
+          "time": 5,
+          "action": "Zet het vuur lager naar laag-medium",
+          "type": "temperature_change"
+        },
+        {
+          "time": 10,
+          "action": "Stap voltooid - ga naar volgende stap",
+          "type": "completion"
+        }
+      ],
+      "tips": ["nuttige tip voor deze stap"],
+      "difficulty": "beginner/intermediate/advanced"
     }
   ],
   "totalTime": 45,
   "difficulty": "makkelijk/gemiddeld/moeilijk",
   "servings": 2,
+  "cookingSchedule": {
+    "timeline": [
+      {"time": 0, "action": "Start met voorbereiden", "steps": [1,2]},
+      {"time": 5, "action": "Begin met koken op fornuis", "steps": [3]},
+      {"time": 15, "action": "Voeg tweede gerecht toe", "steps": [4]}
+    ],
+    "parallelSteps": [[3,4], [5,6]],
+    "criticalTiming": ["Zorg dat de pasta precies op tijd klaar is", "Saus pas op het laatste moment toevoegen"]
+  },
   "kitchenRequirements": {
     "appliances": ["benodigde apparaten"],
     "cookware": ["benodigd kookgerei"]
   }
 }
 
-Zorg ervoor dat:
-- Alle stappen duidelijk en gedetailleerd zijn
-- Tijden realistisch zijn
-- Temperaturen correct zijn aangegeven
-- Tips praktisch en nuttig zijn
-- Het recept past bij de beschikbare keukenapparatuur
-- Alleen beschikbare ingrediënten worden gebruikt, of alternatieven worden voorgesteld`;
+KRITIEKE INSTRUCTIES voor beginners:
+1. STAP CATEGORIEËN:
+   - "prep": Voorbereidingsstappen (snijden, mengen, etc.) - GEEN timers nodig
+   - "stove": Fornuis stappen met timers - WEL naar fornuis slepen
+   - "oven": Oven stappen met timers
+   - "finish": Afwerking (garneren, serveren) - GEEN timers
+
+2. INTELLIGENTE TIMING:
+   - Geef duidelijke aanwijzingen WANNEER elke stap moet starten
+   - Werk backwards van serving tijd
+   - Pasta/rijst altijd pas starten als hoofdgerecht bijna klaar is
+   - Vermeld expliciet: "Start dit 10 minuten NADAT je de kip hebt aangezet"
+
+3. FORNUIS VERDELING:
+   - Spreek logisch over de 4 pitten
+   - Grote pot (pasta) = pit 1 of 4
+   - Kleine pan (saus) = pit 2 of 3
+   - Vermeld specifiek welke pit voor wat
+
+4. BEGINNER HULP:
+   - Leg uit WAAROM je iets doet
+   - Vermeld visuele tekens (goudbruin, borrelt, sissend geluid)
+   - Warn voor veelgemaakte fouten
+   - Geef tijdsinschattingen voor elke handeling
+
+5. TIMING COÖRDINATIE:
+   - Maak duidelijk welke stappen tegelijk kunnen
+   - Warn voor kritieke timing momenten
+   - Geef buffer tijd voor beginners
+
+Zorg ervoor dat het recept perfect werkt voor iemand die nog nooit heeft gekookt!`;
 
     return prompt;
   }
@@ -148,7 +201,25 @@ Zorg ervoor dat:
           temperature: "medium vuur",
           appliance: "fornuis",
           cookware: "pan",
+          burner: 1,
           timer: true,
+          timerActions: [
+            {
+              time: 10,
+              action: "Controleer de garing",
+              type: "instruction"
+            },
+            {
+              time: 20,
+              action: "Roer voorzichtig om",
+              type: "instruction"
+            },
+            {
+              time: 30,
+              action: "Stap voltooid - proef en kruid bij",
+              type: "completion"
+            }
+          ],
           tips: ["AI service tijdelijk niet beschikbaar, probeer later opnieuw"]
         }
       ],
