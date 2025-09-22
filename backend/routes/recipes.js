@@ -7,7 +7,7 @@ const OpenAIService = require('../services/openaiService');
 // POST - Genereer recept met AI
 router.post('/generate', async (req, res) => {
   try {
-    const { userId, ingredients, request } = req.body;
+    const { userId, ingredients, request, servings = 2, onlyUseMyIngredients = true } = req.body;
     
     if (!userId || !ingredients || !request) {
       return res.status(400).json({ 
@@ -24,11 +24,11 @@ router.post('/generate', async (req, res) => {
     let recipeData;
     try {
       // Probeer AI recept te genereren
-      recipeData = await openaiService.generateRecipe(ingredients, request, kitchen);
+      recipeData = await openaiService.generateRecipe(ingredients, request, kitchen, servings, onlyUseMyIngredients);
     } catch (aiError) {
       console.error('AI generation failed, using fallback:', aiError);
       // Gebruik fallback als AI faalt
-      recipeData = openaiService.createFallbackRecipe(ingredients, request);
+      recipeData = openaiService.createFallbackRecipe(ingredients, request, servings);
     }
     
     // Sla het gegenereerde recept op
@@ -41,7 +41,7 @@ router.post('/generate', async (req, res) => {
       steps: recipeData.steps,
       totalTime: recipeData.totalTime,
       difficulty: recipeData.difficulty,
-      servings: recipeData.servings,
+  servings: recipeData.servings,
       kitchenRequirements: recipeData.kitchenRequirements,
       aiGenerated: true
     });

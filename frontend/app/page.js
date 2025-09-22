@@ -9,11 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
+import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 
 export default function HomePage() {
   const [ingredienten, setIngredienten] = useState('');
   const [gerecht, setGerecht] = useState('');
+  const [servings, setServings] = useState(2);
+  const [onlyUseMyIngredients, setOnlyUseMyIngredients] = useState(true);
   const [recept, setRecept] = useState(null);
+  const [ownedIngredients, setOwnedIngredients] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
   
@@ -48,12 +52,24 @@ export default function HomePage() {
           userId: 'demo-user',
           ingredients: ingredienten,
           request: gerecht,
+          servings,
+          onlyUseMyIngredients,
         }),
       });
       
       if (response.ok) {
         const data = await response.json();
         setRecept(data);
+        // initialize owned ingredients
+        const userText = (data.userIngredients || '').toLowerCase();
+        const owned = new Set();
+        (data.ingredients || []).forEach(ing => {
+          if (!ing.name) return;
+          if (ingredientMatches(ing.name, userText)) {
+            owned.add(normalizeIngredient(ing.name));
+          }
+        });
+        setOwnedIngredients(owned);
       } else {
         console.error('Error generating recipe');
       }
@@ -66,6 +82,15 @@ export default function HomePage() {
 
   const handleStepComplete = (stepNumber) => {
     setCompletedSteps(prev => [...new Set([...prev, stepNumber])]);
+  };
+
+  const toggleOwned = (ing) => {
+    const norm = normalizeIngredient(ing.name || ing);
+    setOwnedIngredients(prev => {
+      const next = new Set(prev);
+      if (next.has(norm)) next.delete(norm); else next.add(norm);
+      return next;
+    });
   };
 
   return (
@@ -106,15 +131,42 @@ export default function HomePage() {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="gerecht">Wat wil je maken?</Label>
-              <Input
-                id="gerecht"
-                value={gerecht}
-                onChange={(e) => setGerecht(e.target.value)}
-                placeholder="Bijvoorbeeld: curry, pasta, stir-fry, soep..."
-                required
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="gerecht">Wat wil je maken?</Label>
+                <Input
+                  id="gerecht"
+                  value={gerecht}
+                  onChange={(e) => setGerecht(e.target.value)}
+                  placeholder="Bijvoorbeeld: curry, pasta, stir-fry, soep..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="servings">Porties</Label>
+                <select
+                  id="servings"
+                  value={servings}
+                  onChange={(e) => setServings(Number(e.target.value))}
+                  className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-sm"
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n} portie{n > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-2">
+              <input
+                id="onlyUseMyIngredients"
+                type="checkbox"
+                checked={onlyUseMyIngredients}
+                onChange={(e) => setOnlyUseMyIngredients(e.target.checked)}
+                className="h-4 w-4 rounded border-input text-orange-600 mt-1"
               />
+              <Label htmlFor="onlyUseMyIngredients" className="!mb-0 font-normal text-sm">Wil je dat de AI uitsluitend jouw ingrediënten gebruikt?</Label>
             </div>
             
             <Button 
@@ -178,7 +230,24 @@ export default function HomePage() {
                       <span className="capitalize">{recept.difficulty}</span>
                     </div>
                   </div>
-                </CardHeader>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mt-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Ingrediënten</div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {(recept.ingredients || []).map((ing, idx) => {
+                          const norm = normalizeIngredient(ing.name || '');
+                          const has = ownedIngredients.has(norm);
+                          return (
+                            <button key={idx} onClick={() => toggleOwned(ing)} className={`${has ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'} rounded-md p-2 text-sm text-left`}>
+                              <div className="font-medium">{ing.name}{ing.amount ? ` — ${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : ''}</div>
+                              {!has && <div className="text-xs text-gray-500 mt-1">Ontbreekt</div>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
               </Card>
 
               {/* Recipe Steps with Stove Controls */}

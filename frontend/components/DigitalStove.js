@@ -276,34 +276,37 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   };
 
   const showNotification = (burnerId, action, step) => {
-    const notification = {
-      id: Date.now(),
-      burnerId,
-      action: action.action,
-      type: action.type,
-      stepNumber: step.stepNumber,
-      timestamp: Date.now()
-    };
-
-    setNotifications(prev => [...prev, notification]);
-    
-    // Play notification sound
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {}); // Ignore if autoplay blocked
-    }
-
-    // Show browser notification if permitted
-    if (Notification.permission === 'granted') {
-      new Notification(`Fornuis Pit ${burnerId}`, {
-        body: action.action,
-        icon: '/favicon.ico'
-      });
-    }
-
-    // Auto-remove notification after 10 seconds
+    // Defer notification side-effects to avoid setState during render of a different component
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 10000);
+      const notification = {
+        id: Date.now(),
+        burnerId,
+        action: action.action,
+        type: action.type,
+        stepNumber: step.stepNumber,
+        timestamp: Date.now()
+      };
+
+      setNotifications(prev => [...prev, notification]);
+      
+      // Play notification sound
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {}); // Ignore if autoplay blocked
+      }
+
+      // Show browser notification if permitted
+      if (Notification.permission === 'granted') {
+        new Notification(`Fornuis Pit ${burnerId}`, {
+          body: action.action,
+          icon: '/favicon.ico'
+        });
+      }
+
+      // Auto-remove notification after 10 seconds
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 10000);
+    }, 0);
   };
 
   const dismissNotification = (id) => {
@@ -328,6 +331,33 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   const getAllSteps = () => {
     if (!recipe?.steps) return [];
     return recipe.steps;
+  };
+
+  // Create a short, ingredient-aware title for a step
+  const getStepShortTitle = (step) => {
+    if (!step || !step.description) return '';
+    if (step.shortTitle && typeof step.shortTitle === 'string' && step.shortTitle.trim().length > 0) {
+      return step.shortTitle.trim();
+    }
+    const desc = step.description;
+    const descLower = desc.toLowerCase();
+    const ingredientNames = (recipe?.ingredients || []).map(i => (i.name || '').toLowerCase());
+
+    // Try to find a matched ingredient in the description
+    const matched = ingredientNames.find(name => name && descLower.includes(name));
+    if (matched) {
+      const words = desc.split(/\s+/);
+      let idx = words.findIndex(w => w.toLowerCase().includes(matched));
+      if (idx === -1) idx = 0;
+      const start = Math.max(0, idx - 1);
+      const end = Math.min(words.length, idx + 2);
+      const phrase = words.slice(start, end).join(' ');
+      return phrase.length > 30 ? phrase.slice(0, 30) + '...' : phrase;
+    }
+
+    // Fallback: first 4 words
+    const firstWords = desc.split(/\s+/).slice(0, 4).join(' ');
+    return firstWords.length > 30 ? firstWords.slice(0, 30) + '...' : firstWords;
   };
 
   const getUsedSteps = () => {
@@ -533,10 +563,10 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                   {/* Burner Info */}
                   <div className="text-white text-xs min-h-12 md:min-h-16">
                     {burner.step ? (
-                      <>
-                        <div className="font-semibold mb-1">
-                          Stap {burner.step.stepNumber}
-                        </div>
+                        <>
+                          <div className="font-semibold mb-1">
+                            Stap {burner.step.stepNumber} - {getStepShortTitle(burner.step)}
+                          </div>
                         <div className="mb-1 truncate">{burner.cookware}</div>
                         <div className="text-orange-300 font-mono text-xs">
                           {formatTime(burner.timer)} / {formatTime(burner.totalTime)}
@@ -594,8 +624,8 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                     isInUse ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
                   }`}>
                     <div className="mb-3">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="font-medium text-sm md:text-base">Stap {step.stepNumber}</div>
+                        <div className="flex items-center space-x-2 mb-2">
+                        <div className="font-medium text-sm md:text-base">Stap {step.stepNumber} - {getStepShortTitle(step)}</div>
                         {isInUse && (
                           <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
                             Op pit {burnerWithStep.id}
