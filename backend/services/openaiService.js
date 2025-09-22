@@ -1,4 +1,4 @@
-const OpenAI = require('openai');
+﻿const OpenAI = require('openai');
 
 class OpenAIService {
   constructor() {
@@ -11,13 +11,13 @@ class OpenAIService {
     });
   }
 
-  async generateRecipe(userIngredients, userRequest, kitchen = null) {
+  async generateRecipe(userIngredients, userRequest, kitchen = null, servings = 2, onlyUseMyIngredients = true) {
     try {
       // Bouw de prompt op basis van beschikbare informatie
-      const prompt = this.buildRecipePrompt(userIngredients, userRequest, kitchen);
+      const prompt = this.buildRecipePrompt(userIngredients, userRequest, kitchen, servings, onlyUseMyIngredients);
       
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4.1",
         messages: [
           {
             role: "system",
@@ -42,8 +42,14 @@ class OpenAIService {
     }
   }
 
-  buildRecipePrompt(userIngredients, userRequest, kitchen) {
-    let prompt = `Maak een Nederlands recept voor "${userRequest}" met de volgende ingrediënten: ${userIngredients}\n\n`;
+  buildRecipePrompt(userIngredients, userRequest, kitchen, servings = 2, onlyUseMyIngredients = true) {
+    let prompt = `Maak een Nederlands recept voor "${userRequest}" voor ${servings} portie(s) met de volgende ingrediënten: ${userIngredients}\n\n`;
+
+    if (onlyUseMyIngredients) {
+      prompt += `Gebruik ALLEEN de opgegeven ingrediënten en vervang of voeg GEEN nieuwe ingrediënten toe, tenzij het absoluut noodzakelijk is.\n\n`;
+    } else {
+      prompt += `Je mag aanvullende ingrediënten en vervangingen voorstellen indien dat het gerecht sterk verbetert; vermeld duidelijk welke extra ingrediënten je toevoegt.\n\n`;
+    }
     
     // Voeg keukeninformatie toe als beschikbaar
     if (kitchen && kitchen.appliances && kitchen.appliances.length > 0) {
@@ -67,6 +73,7 @@ Geef het recept terug in dit exacte JSON formaat:
     {
       "stepNumber": 1,
       "description": "Uitgebreide beschrijving van de stap voor beginners",
+      "shortTitle": "Korte titel, max 6 woorden, beschrijft actie en ingrediënt",
       "duration": 10,
       "temperature": "180°C of medium vuur",
       "appliance": "oven/fornuis/magnetron etc",
@@ -172,6 +179,16 @@ Zorg ervoor dat het recept perfect werkt voor iemand die nog nooit heeft gekookt
         appliances: [],
         cookware: []
       };
+
+      // Ensure each step has a shortTitle — derive from description if missing
+      recipeData.steps = recipeData.steps.map(step => {
+        if (!step.shortTitle || typeof step.shortTitle !== 'string' || step.shortTitle.trim().length === 0) {
+          const desc = (step.description || '').split(/[\.\,\!]/)[0] || '';
+          const words = desc.split(/\s+/).slice(0,6).join(' ');
+          step.shortTitle = words.trim();
+        }
+        return step;
+      });
       
       return recipeData;
     } catch (error) {
@@ -187,7 +204,7 @@ Zorg ervoor dat het recept perfect werkt voor iemand die nog nooit heeft gekookt
   }
 
   // Fallback functie voor als OpenAI niet beschikbaar is
-  createFallbackRecipe(userIngredients, userRequest) {
+  createFallbackRecipe(userIngredients, userRequest, servings = 2) {
     return {
       title: `${userRequest} met beschikbare ingrediënten`,
       ingredients: [
@@ -225,7 +242,7 @@ Zorg ervoor dat het recept perfect werkt voor iemand die nog nooit heeft gekookt
       ],
       totalTime: 30,
       difficulty: "gemiddeld",
-      servings: 2,
+      servings: servings,
       kitchenRequirements: {
         appliances: ["fornuis"],
         cookware: ["pan"]

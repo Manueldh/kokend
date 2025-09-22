@@ -114,14 +114,11 @@ export default function ReceptenPage() {
                 </div>
 
                 <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => window.open(`/recepten/${recept._id}`, '_blank')}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Bekijk
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <a href={`/recepten/${recept._id}`}>
+                      <Eye className="h-4 w-4 mr-1" />
+                      Bekijk
+                    </a>
                   </Button>
                   <Button 
                     variant="outline" 

@@ -30,6 +30,11 @@ const StepSchema = new mongoose.Schema({
     default: false
   },
   tips: [String] // extra tips voor deze stap
+  ,
+  shortTitle: {
+    type: String,
+    default: null
+  }
 });
 
 const RecipeSchema = new mongoose.Schema({
