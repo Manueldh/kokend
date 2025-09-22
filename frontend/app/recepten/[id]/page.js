@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import DigitalStove from "@/components/DigitalStove";
 
 export default function ReceptDetailPage({ params }) {
-  const { id } = params;
+  // unwrap params (may be a Promise in this Next.js version)
+  const unwrappedParams = React.use(params);
+  const { id } = unwrappedParams;
   const [recept, setRecept] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completedSteps, setCompletedSteps] = useState([]);
