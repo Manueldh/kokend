@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
+import { useUser } from "@/components/UserProvider";
 
 export default function HomePage() {
+  const { user } = useUser();
   const [ingredienten, setIngredienten] = useState('');
   const [gerecht, setGerecht] = useState('');
   const [servings, setServings] = useState(2);
@@ -49,7 +51,7 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId: user?.id || null, // null for guest users
           ingredients: ingredienten,
           request: gerecht,
           servings,
@@ -104,6 +106,21 @@ export default function HomePage() {
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Je persoonlijke AI kook-assistent met digitaal fornuis. Krijg stap-voor-stap instructies met slimme timers!
         </p>
+        
+        {/* User Status */}
+        {user ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 max-w-2xl mx-auto">
+            <p className="text-green-800 text-sm">
+              👋 Welkom terug, {user.displayName || user.username}! Je recepten worden automatisch opgeslagen.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-2xl mx-auto">
+            <p className="text-blue-800 text-sm">
+              💡 <strong>Tip:</strong> <a href="/login" className="underline hover:no-underline">Log in</a> om je recepten automatisch op te slaan en je keukenapparatuur te beheren!
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Recipe Generator Form */}

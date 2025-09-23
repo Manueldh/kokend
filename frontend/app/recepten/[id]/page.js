@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Utensils, ChefHat } from "lucide-react";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import DigitalStove from "@/components/DigitalStove";
+import { useUser } from "../../../components/UserProvider";
+import ProtectedRoute from "../../../components/ProtectedRoute";
 
-export default function ReceptDetailPage({ params }) {
+function ReceptDetailContent({ params }) {
+  const { user } = useUser();
   // unwrap params (may be a Promise in this Next.js version)
   const unwrappedParams = React.use(params);
   const { id } = unwrappedParams;
@@ -180,5 +183,13 @@ export default function ReceptDetailPage({ params }) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReceptDetailPage({ params }) {
+  return (
+    <ProtectedRoute>
+      <ReceptDetailContent params={params} />
+    </ProtectedRoute>
   );
 }

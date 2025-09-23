@@ -32,6 +32,7 @@ app.get('/', (req, res) => {
 });
 
 // Routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/kitchen', require('./routes/kitchen'));
 app.use('/api/recipes', require('./routes/recipes'));
 

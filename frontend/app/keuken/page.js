@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Settings, ChefHat } from "lucide-react";
+import { useUser } from "../../components/UserProvider";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
-export default function KeukenPage() {
+function KeukenContent() {
+  const { user } = useUser();
   const [keuken, setKeuken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplianceForm, setShowApplianceForm] = useState(false);
@@ -46,19 +49,21 @@ export default function KeukenPage() {
   ];
 
   useEffect(() => {
-    fetchKeuken();
-  }, []);
+    if (user) {
+      fetchKeuken();
+    }
+  }, [user]);
 
   const fetchKeuken = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/kitchen/demo-user');
+      const response = await fetch(`http://localhost:3001/api/kitchen/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setKeuken(data);
       } else if (response.status === 404) {
         // Geen keuken gevonden, maak een lege aan
         setKeuken({
-          userId: 'demo-user',
+          userId: user.id,
           name: 'Mijn Keuken',
           appliances: [],
           cookware: []
@@ -362,5 +367,13 @@ export default function KeukenPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function KeukenPage() {
+  return (
+    <ProtectedRoute>
+      <KeukenContent />
+    </ProtectedRoute>
   );
 }

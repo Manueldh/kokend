@@ -9,14 +9,14 @@ router.post('/generate', async (req, res) => {
   try {
     const { userId, ingredients, request, servings = 2, onlyUseMyIngredients = true } = req.body;
     
-    if (!userId || !ingredients || !request) {
+    if (!ingredients || !request) {
       return res.status(400).json({ 
-        message: 'userId, ingredients en request zijn vereist' 
+        message: 'ingredients en request zijn vereist' 
       });
     }
 
-    // Haal keukeninformatie op
-    const kitchen = await Kitchen.findOne({ userId });
+    // Haal keukeninformatie op (alleen voor ingelogde gebruikers)
+    const kitchen = userId ? await Kitchen.findOne({ userId }) : null;
     
     // Initialiseer OpenAI service
     const openaiService = new OpenAIService();
@@ -31,23 +31,34 @@ router.post('/generate', async (req, res) => {
       recipeData = openaiService.createFallbackRecipe(ingredients, request, servings);
     }
     
-    // Sla het gegenereerde recept op
-    const recipe = new Recipe({
-      userId,
-      title: recipeData.title,
-      ingredients: recipeData.ingredients,
-      userIngredients: ingredients,
-      userRequest: request,
-      steps: recipeData.steps,
-      totalTime: recipeData.totalTime,
-      difficulty: recipeData.difficulty,
-  servings: recipeData.servings,
-      kitchenRequirements: recipeData.kitchenRequirements,
-      aiGenerated: true
-    });
-    
-    const savedRecipe = await recipe.save();
-    res.json(savedRecipe);
+    // Sla het gegenereerde recept alleen op voor ingelogde gebruikers
+    if (userId) {
+      const recipe = new Recipe({
+        userId,
+        title: recipeData.title,
+        ingredients: recipeData.ingredients,
+        userIngredients: ingredients,
+        userRequest: request,
+        steps: recipeData.steps,
+        totalTime: recipeData.totalTime,
+        difficulty: recipeData.difficulty,
+        servings: recipeData.servings,
+        kitchenRequirements: recipeData.kitchenRequirements,
+        aiGenerated: true
+      });
+      
+      const savedRecipe = await recipe.save();
+      res.json(savedRecipe);
+    } else {
+      // Voor gastgebruikers, stuur alleen de receptdata terug zonder op te slaan
+      res.json({
+        ...recipeData,
+        _id: null, // Geen database ID
+        createdAt: new Date(),
+        aiGenerated: true,
+        guestRecipe: true // Markeer als gastrecept
+      });
+    }
     
   } catch (error) {
     console.error('Recipe generation error:', error);

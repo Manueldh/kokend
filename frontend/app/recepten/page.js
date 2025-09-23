@@ -5,18 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Utensils, Trash2, Eye } from "lucide-react";
+import { useUser } from "../../components/UserProvider";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
-export default function ReceptenPage() {
+function ReceptenContent() {
+  const { user } = useUser();
   const [recepten, setRecepten] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRecepten();
-  }, []);
+    if (user) {
+      fetchRecepten();
+    }
+  }, [user]);
 
   const fetchRecepten = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/recipes/user/demo-user');
+      const response = await fetch(`http://localhost:3001/api/recipes/user/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setRecepten(data);
@@ -63,7 +68,10 @@ export default function ReceptenPage() {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-800 mb-4">Mijn Recepten</h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 mb-2">
+          Welkom terug, {user?.displayName || user?.username}!
+        </p>
+        <p className="text-gray-600">
           Alle door AI gegenereerde recepten op één plek
         </p>
       </div>
@@ -139,5 +147,13 @@ export default function ReceptenPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReceptenPage() {
+  return (
+    <ProtectedRoute>
+      <ReceptenContent />
+    </ProtectedRoute>
   );
 }
