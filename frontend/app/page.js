@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle } from "lucide-react";
+import { useUser } from '../components/UserProvider';
+import { apiUrl } from '../lib/api';
 import DigitalStove from "@/components/DigitalStove";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import { useUser } from "@/components/UserProvider";
@@ -45,7 +47,7 @@ export default function HomePage() {
     ]);
     
     try {
-      const response = await fetch('http://localhost:3001/api/recipes/generate', {
+      const response = await fetch(apiUrl('/api/recipes/generate'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

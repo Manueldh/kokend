@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Utensils, Trash2, Eye } from "lucide-react";
 import { useUser } from "../../components/UserProvider";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import { apiUrl } from "../../lib/api";
 
 function ReceptenContent() {
   const { user } = useUser();
@@ -21,7 +22,7 @@ function ReceptenContent() {
 
   const fetchRecepten = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/recipes/user/${user.id}`);
+      const response = await fetch(apiUrl(`/api/recipes/user/${user.id}`));
       if (response.ok) {
         const data = await response.json();
         setRecepten(data);
@@ -35,7 +36,7 @@ function ReceptenContent() {
 
   const deleteRecipe = async (id) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/recipes/${id}`, {
+      const response = await fetch(apiUrl(`/api/recipes/${id}`), {
         method: 'DELETE',
       });
       if (response.ok) {

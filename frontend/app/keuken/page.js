@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Settings, ChefHat } from "lucide-react";
 import { useUser } from "../../components/UserProvider";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import { apiUrl } from "../../lib/api";
 
 function KeukenContent() {
   const { user } = useUser();
@@ -56,7 +57,7 @@ function KeukenContent() {
 
   const fetchKeuken = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/kitchen/${user.id}`);
+      const response = await fetch(apiUrl(`/api/kitchen/${user.id}`));
       if (response.ok) {
         const data = await response.json();
         setKeuken(data);
