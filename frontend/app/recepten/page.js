@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Utensils, Trash2, Eye } from "lucide-react";
 import { useUser } from "../../components/UserProvider";
+import Link from "next/link";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { apiUrl } from "../../lib/api";
 
@@ -14,13 +15,9 @@ function ReceptenContent() {
   const [recepten, setRecepten] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchRecepten();
-    }
-  }, [user]);
-
-  const fetchRecepten = async () => {
+  const fetchRecepten = useCallback(async () => {
+    if (!user) return;
+    
     try {
       const response = await fetch(apiUrl(`/api/recipes/user/${user.id}`));
       if (response.ok) {
@@ -32,7 +29,11 @@ function ReceptenContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchRecepten();
+  }, [fetchRecepten]);
 
   const deleteRecipe = async (id) => {
     try {
@@ -88,7 +89,7 @@ function ReceptenContent() {
               Genereer je eerste recept om hier te zien!
             </p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
-              <a href="/">Genereer Recept</a>
+              <Link href="/">Genereer Recept</Link>
             </Button>
           </CardContent>
         </Card>

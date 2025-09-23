@@ -3,7 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const apiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
 
-export default {
+const apiConfig = {
   baseUrl: API_BASE_URL,
   endpoints: {
     auth: {
@@ -22,3 +22,5 @@ export default {
     }
   }
 };
+
+export default apiConfig;

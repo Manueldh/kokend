@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,13 +49,9 @@ function KeukenContent() {
     'roestvrij staal', 'anti-aanbak', 'gietijzer', 'keramiek', 'glas', 'andere'
   ];
 
-  useEffect(() => {
-    if (user) {
-      fetchKeuken();
-    }
-  }, [user]);
-
-  const fetchKeuken = async () => {
+  const fetchKeuken = useCallback(async () => {
+    if (!user) return;
+    
     try {
       const response = await fetch(apiUrl(`/api/kitchen/${user.id}`));
       if (response.ok) {
@@ -75,7 +71,11 @@ function KeukenContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchKeuken();
+  }, [fetchKeuken]);
 
   const saveKeuken = async (updatedKeuken) => {
     try {
