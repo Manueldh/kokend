@@ -45,7 +45,8 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   useEffect(() => {
     // Cleanup intervals when component unmounts
     return () => {
-      Object.values(intervalRefs.current).forEach(clearInterval);
+      const currentIntervals = intervalRefs.current;
+      Object.values(currentIntervals).forEach(clearInterval);
       if (globalTimerRef.current) clearInterval(globalTimerRef.current);
     };
   }, []);

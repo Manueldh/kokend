@@ -192,7 +192,7 @@ export default function HomePage() {
                 className="border-red-200 focus:border-red-400"
               />
               <p className="text-sm text-gray-500">
-                Voer allergieën in gescheiden door komma's. Deze worden strikt vermeden in het recept.
+                Voer allergieën in gescheiden door komma&apos;s. Deze worden strikt vermeden in het recept.
               </p>
             </div>
             
