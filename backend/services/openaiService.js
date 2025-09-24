@@ -11,10 +11,10 @@ class OpenAIService {
     });
   }
 
-  async generateRecipe(userIngredients, userRequest, kitchen = null, servings = 2, onlyUseMyIngredients = true) {
+  async generateRecipe(userIngredients, userRequest, kitchen = null, servings = 2, onlyUseMyIngredients = true, preferences = {}) {
     try {
-      // Bouw de prompt op basis van beschikbare informatie
-      const prompt = this.buildRecipePrompt(userIngredients, userRequest, kitchen, servings, onlyUseMyIngredients);
+      // Bouw de prompt op basis van beschikbare informatie inclusief voorkeuren
+      const prompt = this.buildRecipePrompt(userIngredients, userRequest, kitchen, servings, onlyUseMyIngredients, preferences);
       
       const completion = await this.openai.chat.completions.create({
         model: "gpt-4.1",
@@ -42,8 +42,53 @@ class OpenAIService {
     }
   }
 
-  buildRecipePrompt(userIngredients, userRequest, kitchen, servings = 2, onlyUseMyIngredients = true) {
+  buildRecipePrompt(userIngredients, userRequest, kitchen, servings = 2, onlyUseMyIngredients = true, preferences = {}) {
     let prompt = `Maak een Nederlands recept voor "${userRequest}" voor ${servings} portie(s) met de volgende ingrediënten: ${userIngredients}\n\n`;
+
+    // Voeg allergieën en dieetbeperkingen toe
+    if (preferences.allergies && preferences.allergies.length > 0) {
+      prompt += `BELANGRIJK: Vermijd de volgende allergenen: ${preferences.allergies.join(', ')}. Zorg dat GEEN van deze allergenen in het recept gebruikt worden.\n\n`;
+    }
+    
+    if (preferences.dietaryRestrictions && preferences.dietaryRestrictions.length > 0) {
+      prompt += `Dieetbeperkingen: ${preferences.dietaryRestrictions.join(', ')}. Zorg dat het recept hieraan voldoet.\n\n`;
+    }
+    
+    // Voeg smaakvoorkeuren toe
+    if (preferences.favoriteIngredients && preferences.favoriteIngredients.length > 0) {
+      prompt += `Favoriete ingrediënten (gebruik indien mogelijk): ${preferences.favoriteIngredients.join(', ')}\n`;
+    }
+    
+    if (preferences.dislikedIngredients && preferences.dislikedIngredients.length > 0) {
+      prompt += `Ingrediënten om te vermijden: ${preferences.dislikedIngredients.join(', ')}\n`;
+    }
+    
+    if (preferences.favoriteCuisines && preferences.favoriteCuisines.length > 0) {
+      prompt += `Favoriete keukentypen: ${preferences.favoriteCuisines.join(', ')}\n`;
+    }
+    
+    if (preferences.spiceLevel) {
+      const spiceLevels = {
+        'mild': 'heel mild, geen pittige kruiden',
+        'gemiddeld': 'gemiddeld gekruid',
+        'pittig': 'lekker pittig',
+        'zeer-pittig': 'zeer pittig met veel kruiden'
+      };
+      prompt += `Kruidenniveau: ${spiceLevels[preferences.spiceLevel] || 'gemiddeld gekruid'}\n`;
+    }
+    
+    if (preferences.cookingTime) {
+      const timeLevels = {
+        'snel': 'maximaal 30 minuten bereidingstijd',
+        'gemiddeld': '30-60 minuten bereidingstijd',
+        'langzaam': 'meer dan 60 minuten is prima'
+      };
+      if (timeLevels[preferences.cookingTime]) {
+        prompt += `Bereidingstijd voorkeur: ${timeLevels[preferences.cookingTime]}\n`;
+      }
+    }
+    
+    prompt += `\n`;
 
     if (onlyUseMyIngredients) {
       prompt += `Gebruik ALLEEN de opgegeven ingrediënten en vervang of voeg GEEN nieuwe ingrediënten toe, tenzij het absoluut noodzakelijk is.\n\n`;

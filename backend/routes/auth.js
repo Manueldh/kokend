@@ -54,11 +54,42 @@ router.get('/me/:userId', async (req, res) => {
     res.json({
       id: user._id,
       username: user.username,
-      displayName: user.displayName
+      displayName: user.displayName,
+      preferences: user.preferences || {}
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Er is een fout opgetreden' });
+  }
+});
+
+// Update user preferences
+router.put('/preferences/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { preferences } = req.body;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Gebruiker niet gevonden' });
+    }
+    
+    user.preferences = {
+      ...user.preferences,
+      ...preferences
+    };
+    
+    await user.save();
+    
+    res.json({
+      id: user._id,
+      username: user.username,
+      displayName: user.displayName,
+      preferences: user.preferences
+    });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    res.status(500).json({ error: 'Fout bij updaten voorkeuren' });
   }
 });
 

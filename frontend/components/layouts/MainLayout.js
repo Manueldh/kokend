@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { ChefHat, Home, Settings, BookOpen, LogOut, User } from "lucide-react";
+import { ChefHat, Home, Settings, BookOpen, LogOut, User, Heart } from "lucide-react";
 import { useUser } from "@/components/UserProvider";
 import { usePathname } from 'next/navigation';
 
@@ -47,6 +47,12 @@ export default function MainLayout({ children }) {
                         <Link href="/keuken" className="flex items-center space-x-2">
                           <Settings className="h-4 w-4" />
                           <span>Keuken</span>
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" asChild>
+                        <Link href="/voorkeuren" className="flex items-center space-x-2">
+                          <Heart className="h-4 w-4" />
+                          <span>Voorkeuren</span>
                         </Link>
                       </Button>
                     </>

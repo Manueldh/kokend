@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle } from "lucide-react";
+import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import { useUser } from "@/components/UserProvider";
@@ -17,6 +17,7 @@ export default function HomePage() {
   const { user } = useUser();
   const [ingredienten, setIngredienten] = useState('');
   const [gerecht, setGerecht] = useState('');
+  const [allergies, setAllergies] = useState('');
   const [servings, setServings] = useState(2);
   const [onlyUseMyIngredients, setOnlyUseMyIngredients] = useState(true);
   const [recept, setRecept] = useState(null);
@@ -57,6 +58,7 @@ export default function HomePage() {
           request: gerecht,
           servings,
           onlyUseMyIngredients,
+          allergies: allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [],
         }),
       });
       
@@ -175,6 +177,33 @@ export default function HomePage() {
                 </select>
               </div>
             </div>
+
+            {/* Allergieën veld voor alle gebruikers */}
+            <div className="space-y-2">
+              <Label htmlFor="allergies" className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                Allergieën (optioneel)
+              </Label>
+              <Input
+                id="allergies"
+                value={allergies}
+                onChange={(e) => setAllergies(e.target.value)}
+                placeholder="Bijvoorbeeld: noten, gluten, lactose, schaaldieren..."
+                className="border-red-200 focus:border-red-400"
+              />
+              <p className="text-sm text-gray-500">
+                Voer allergieën in gescheiden door komma's. Deze worden strikt vermeden in het recept.
+              </p>
+            </div>
+            
+            {/* Tip voor gebruikersvoorkeuren */}
+            {user && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-blue-800 text-sm">
+                  💡 <strong>Tip:</strong> Ga naar je <a href="/voorkeuren" className="underline hover:no-underline">voorkeuren</a> om je smaakvoorkeuren permanent in te stellen!
+                </p>
+              </div>
+            )}
 
             <div className="flex items-start space-x-2">
               <input

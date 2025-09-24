@@ -7,13 +7,36 @@ const OpenAIService = require('../services/openaiService');
 // POST - Genereer recept met AI
 router.post('/generate', async (req, res) => {
   try {
-    const { userId, ingredients, request, servings = 2, onlyUseMyIngredients = true } = req.body;
+    const { 
+      userId, 
+      ingredients, 
+      request, 
+      servings = 2, 
+      onlyUseMyIngredients = true,
+      allergies = [], // Nieuw: voor niet-ingelogde gebruikers
+      guestPreferences = {} // Nieuw: voor gastvoorkeuren
+    } = req.body;
     
     if (!ingredients || !request) {
       return res.status(400).json({ 
         message: 'ingredients en request zijn vereist' 
       });
     }
+
+    // Haal gebruikersvoorkeuren op als ingelogd
+    let userPreferences = null;
+    if (userId) {
+      const User = require('../models/User');
+      const user = await User.findById(userId);
+      userPreferences = user?.preferences || {};
+    }
+
+    // Combineer gebruikersvoorkeuren met gastvoorkeuren en allergieën
+    const combinedPreferences = {
+      ...userPreferences,
+      ...guestPreferences,
+      allergies: allergies // Voeg allergieën toe
+    };
 
     // Haal keukeninformatie op (alleen voor ingelogde gebruikers)
     const kitchen = userId ? await Kitchen.findOne({ userId }) : null;
@@ -23,8 +46,15 @@ router.post('/generate', async (req, res) => {
     
     let recipeData;
     try {
-      // Probeer AI recept te genereren
-      recipeData = await openaiService.generateRecipe(ingredients, request, kitchen, servings, onlyUseMyIngredients);
+      // Probeer AI recept te genereren met voorkeuren
+      recipeData = await openaiService.generateRecipe(
+        ingredients, 
+        request, 
+        kitchen, 
+        servings, 
+        onlyUseMyIngredients,
+        combinedPreferences // Voeg voorkeuren toe aan AI call
+      );
     } catch (aiError) {
       console.error('AI generation failed, using fallback:', aiError);
       // Gebruik fallback als AI faalt
