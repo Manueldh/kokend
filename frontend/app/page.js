@@ -153,13 +153,12 @@ export default function HomePage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="col-span-2 space-y-2">
-                <Label htmlFor="gerecht">Wat wil je maken?</Label>
+                <Label htmlFor="gerecht">Wat wil je maken? (optioneel)</Label>
                 <Input
                   id="gerecht"
                   value={gerecht}
                   onChange={(e) => setGerecht(e.target.value)}
                   placeholder="Bijvoorbeeld: curry, pasta, stir-fry, soep..."
-                  required
                 />
               </div>
 
