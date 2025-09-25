@@ -3,6 +3,7 @@ const router = express.Router();
 const Recipe = require('../models/Recipe');
 const Kitchen = require('../models/Kitchen');
 const OpenAIService = require('../services/openaiService');
+const achievementService = require('../services/achievementService');
 
 // POST - Genereer recept met AI
 router.post('/generate', async (req, res) => {
@@ -78,7 +79,53 @@ router.post('/generate', async (req, res) => {
       });
       
       const savedRecipe = await recipe.save();
-      res.json(savedRecipe);
+
+      // Update achievement stats for recipe generation
+      const statsUpdate = {
+        recipesGenerated: 1,
+        totalCookingTime: recipeData.totalTime || 0
+      };
+
+      // Check recipe complexity
+      if (recipeData.difficulty === 'moeilijk' || recipeData.totalTime > 60) {
+        statsUpdate.masterChefRecipes = 1;
+      }
+
+      // Check speed cooking
+      if (recipeData.totalTime <= 15) {
+        statsUpdate.speedCookRecipes = 1;
+      }
+
+      // Check cuisine type (if available in recipe data)
+      if (recipeData.cuisine && recipeData.cuisine !== 'nederlands') {
+        statsUpdate.internationalRecipes = 1;
+        statsUpdate.cuisinesExplored = [recipeData.cuisine];
+      }
+
+      // Check vegetarian
+      const isVegetarian = recipeData.ingredients?.every(ing => 
+        !['kip', 'rundvlees', 'varkensvlees', 'vis', 'zalm', 'tonijn', 'garnalen', 'ham', 'spek'].some(meat => 
+          ing.name?.toLowerCase().includes(meat)
+        )
+      );
+      if (isVegetarian) {
+        statsUpdate.vegetarianRecipes = 1;
+      }
+
+      // Track appliances used
+      const appliances = recipeData.steps?.map(step => step.appliance).filter(Boolean) || [];
+      if (appliances.length > 0) {
+        statsUpdate.appliancesUsed = [...new Set(appliances)];
+      }
+
+      // Update stats and check for new achievements
+      const newAchievements = await achievementService.updateStats(userId, statsUpdate);
+      
+      // Include new achievements in response
+      res.json({
+        ...savedRecipe.toObject(),
+        newAchievements
+      });
     } else {
       // Voor gastgebruikers, stuur alleen de receptdata terug zonder op te slaan
       res.json({

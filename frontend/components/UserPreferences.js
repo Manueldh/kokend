@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X, Heart, AlertTriangle, Globe, Clock } from "lucide-react";
 import { useUser } from "./UserProvider";
 import { api } from "../lib/api";
+import AchievementNotification from "./AchievementNotification";
 
 export default function UserPreferences() {
   const { user } = useUser();
@@ -26,6 +27,7 @@ export default function UserPreferences() {
   const [newDislikedIngredient, setNewDislikedIngredient] = useState('');
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [newAchievements, setNewAchievements] = useState(null);
 
   const cuisineTypes = [
     'italiensk', 'aziatisch', 'frans', 'grieks', 'spaans', 'mexicaans',
@@ -108,9 +110,14 @@ export default function UserPreferences() {
     
     setLoading(true);
     try {
-      await api.updateUserPreferences(user.id, preferences);
+      const response = await api.updateUserPreferences(user.id, preferences);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      
+      // Check for new achievements
+      if (response.newAchievements && response.newAchievements.length > 0) {
+        setNewAchievements(response.newAchievements);
+      }
     } catch (error) {
       console.error('Error saving preferences:', error);
     } finally {
@@ -318,6 +325,14 @@ export default function UserPreferences() {
           {loading ? 'Opslaan...' : saved ? '✓ Opgeslagen!' : 'Voorkeuren Opslaan'}
         </Button>
       </div>
+
+      {/* Achievement Notification */}
+      {newAchievements && (
+        <AchievementNotification 
+          achievements={newAchievements} 
+          onClose={() => setNewAchievements(null)} 
+        />
+      )}
     </div>
   );
 }

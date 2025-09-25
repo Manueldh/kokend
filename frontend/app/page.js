@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
+import AchievementNotification from "@/components/AchievementNotification";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import { useUser } from "@/components/UserProvider";
 import { apiUrl } from '../lib/api';
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [ownedIngredients, setOwnedIngredients] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [newAchievements, setNewAchievements] = useState(null);
   
   // Shared burner state for all DigitalStove components
   const [burners, setBurners] = useState([
@@ -65,6 +67,12 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json();
         setRecept(data);
+        
+        // Show achievement notifications if any
+        if (data.newAchievements && data.newAchievements.length > 0) {
+          setNewAchievements(data.newAchievements);
+        }
+        
         // initialize owned ingredients
         const userText = (data.userIngredients || '').toLowerCase();
         const owned = new Set();
@@ -85,8 +93,32 @@ export default function HomePage() {
     }
   };
 
-  const handleStepComplete = (stepNumber) => {
+  const handleStepComplete = async (stepNumber) => {
     setCompletedSteps(prev => [...new Set([...prev, stepNumber])]);
+    
+    // Update achievement stats for step completion
+    if (user?.id) {
+      try {
+        const response = await fetch(apiUrl(`/api/achievements/stats/${user.id}`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            stepsCompleted: 1
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.newAchievements && data.newAchievements.length > 0) {
+            setNewAchievements(data.newAchievements);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating step achievement:', error);
+      }
+    }
   };
 
   const toggleOwned = (ing) => {
@@ -335,6 +367,14 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Achievement Notification */}
+      {newAchievements && (
+        <AchievementNotification 
+          achievements={newAchievements} 
+          onClose={() => setNewAchievements(null)} 
+        />
       )}
     </div>
   );

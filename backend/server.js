@@ -35,6 +35,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/kitchen', require('./routes/kitchen'));
 app.use('/api/recipes', require('./routes/recipes'));
+app.use('/api/achievements', require('./routes/achievements'));
 
 app.listen(PORT, () => {
   console.log(`🚀 Server draait op poort ${PORT}`);

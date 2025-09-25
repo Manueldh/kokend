@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { ChefHat, Home, Settings, BookOpen, LogOut, User, Heart } from "lucide-react";
+import { ChefHat, Home, Settings, BookOpen, LogOut, User, Heart, Trophy } from "lucide-react";
 import { useUser } from "@/components/UserProvider";
 import { usePathname } from 'next/navigation';
 
@@ -18,6 +18,7 @@ export default function MainLayout({ children }) {
     { href: '/recepten', icon: BookOpen, label: 'Recepten', requiresAuth: true },
     { href: '/keuken', icon: Settings, label: 'Keuken', requiresAuth: true },
     { href: '/voorkeuren', icon: Heart, label: 'Voorkeuren', requiresAuth: true },
+    { href: '/achievements', icon: Trophy, label: 'Achievements', requiresAuth: true },
   ];
 
   const visibleNavItems = navigationItems.filter(item => 
@@ -64,6 +65,12 @@ export default function MainLayout({ children }) {
                         <Link href="/voorkeuren" className="flex items-center space-x-2">
                           <Heart className="h-4 w-4" />
                           <span>Voorkeuren</span>
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" asChild>
+                        <Link href="/achievements" className="flex items-center space-x-2">
+                          <Trophy className="h-4 w-4" />
+                          <span>Achievements</span>
                         </Link>
                       </Button>
                     </>

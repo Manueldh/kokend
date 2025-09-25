@@ -48,6 +48,33 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  achievements: {
+    unlockedAchievements: [{
+      id: { type: String, required: true },
+      unlockedAt: { type: Date, default: Date.now },
+      name: String,
+      description: String
+    }],
+    stats: {
+      recipesGenerated: { type: Number, default: 0 },
+      totalCookingTime: { type: Number, default: 0 }, // in minutes
+      stepsCompleted: { type: Number, default: 0 },
+      burnersUsed: [Number], // track which burners used
+      appliancesUsed: [String], // track appliances used
+      cuisinesExplored: [String], // track different cuisines tried
+      preferencesSet: { type: Boolean, default: false },
+      kitchenSetup: { type: Boolean, default: false },
+      perfectTimingCount: { type: Number, default: 0 }, // recipes completed on time
+      longestStreak: { type: Number, default: 0 }, // consecutive days cooking
+      currentStreak: { type: Number, default: 0 },
+      lastCookingDate: Date,
+      fourBurnersUsed: { type: Boolean, default: false }, // all 4 burners at once
+      masterChefRecipes: { type: Number, default: 0 }, // complex recipes
+      speedCookRecipes: { type: Number, default: 0 }, // recipes under 15 mins
+      vegetarianRecipes: { type: Number, default: 0 },
+      internationalRecipes: { type: Number, default: 0 }
+    }
+  },
   lastLoginAt: {
     type: Date,
     default: Date.now
