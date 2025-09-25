@@ -1,5 +1,31 @@
 // API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Automatisch detecteren van juiste backend URL
+const getApiBaseUrl = () => {
+  // Als er een environment variable is, gebruik die
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // Anders bepaal op basis van de huidige URL
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+    
+    if (hostname.includes('vercel.app')) {
+      return 'https://kokend.onrender.com';
+    }
+  }
+  
+  // Fallback
+  return 'http://localhost:3001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+console.log('🔧 API Base URL:', API_BASE_URL);
 
 export const apiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
 

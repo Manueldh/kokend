@@ -8,10 +8,34 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://kokend.vercel.app', 'https://kokend-git-live-manueldh.vercel.app'] // Je production URLs
-    : true, // Allow all in development
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'https://kokend.vercel.app',
+      'https://kokend-git-live-manueldhs-projects.vercel.app',
+      'https://kokend-git-live-manueldh.vercel.app'
+    ];
+    
+    // Allow all Vercel preview URLs
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
