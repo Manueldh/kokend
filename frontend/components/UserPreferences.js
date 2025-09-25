@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Heart, AlertTriangle, Globe, Clock } from "lucide-react";
+import { Plus, X, Heart, AlertTriangle, Globe, Clock, ChefHat, Utensils, Trash2 } from "lucide-react";
 import { useUser } from "./UserProvider";
 import { api } from "../lib/api";
 import AchievementNotification from "./AchievementNotification";
 
 export default function UserPreferences() {
-  const { user, updateUser } = useUser();
+  const { user, refreshUser } = useUser();
   const [preferences, setPreferences] = useState({
     favoriteIngredients: [],
     dislikedIngredients: [],
@@ -24,9 +24,16 @@ export default function UserPreferences() {
     cookingTime: 'geen-voorkeur'
   });
   
+  const [kitchen, setKitchen] = useState({
+    appliances: [],
+    cookware: []
+  });
+  
   const [newFavoriteIngredient, setNewFavoriteIngredient] = useState('');
   const [newDislikedIngredient, setNewDislikedIngredient] = useState('');
   const [newAllergy, setNewAllergy] = useState('');
+  const [newAppliance, setNewAppliance] = useState({ name: '', type: '' });
+  const [newCookware, setNewCookware] = useState({ name: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newAchievements, setNewAchievements] = useState(null);
@@ -42,6 +49,14 @@ export default function UserPreferences() {
     'koolhydraatarm', 'halal', 'kosher', 'andere'
   ];
 
+  const applianceTypes = [
+    'fornuis', 'oven', 'magnetron', 'airfryer', 'grill', 'steamer', 'andere'
+  ];
+
+  const cookwareTypes = [
+    'pan', 'braadpan', 'steelpan', 'wok', 'ovenschaal', 'bakvorm', 'andere'
+  ];
+
   useEffect(() => {
     if (user?.preferences) {
       setPreferences({
@@ -54,6 +69,24 @@ export default function UserPreferences() {
         cookingTime: user.preferences.cookingTime || 'geen-voorkeur'
       });
     }
+
+    // Fetch kitchen data
+    const fetchKitchen = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const kitchenData = await api.getUserKitchen(user.id);
+        setKitchen({
+          appliances: kitchenData.appliances || [],
+          cookware: kitchenData.cookware || []
+        });
+      } catch (error) {
+        // Kitchen might not exist yet, that's ok
+        console.log('No kitchen found yet, will create on first save');
+      }
+    };
+
+    fetchKitchen();
   }, [user]);
 
   const addFavoriteIngredient = () => {
@@ -125,26 +158,72 @@ export default function UserPreferences() {
     }));
   };
 
+  const addAppliance = async () => {
+    if (!newAppliance.name.trim() || !newAppliance.type) return;
+    
+    try {
+      const updatedKitchen = await api.saveKitchen(user.id, [...kitchen.appliances, newAppliance], kitchen.cookware);
+      setKitchen(prev => ({
+        ...prev,
+        appliances: updatedKitchen.appliances
+      }));
+      setNewAppliance({ name: '', type: '' });
+    } catch (error) {
+      console.error('Error adding appliance:', error);
+    }
+  };
+
+  const addCookware = async () => {
+    if (!newCookware.name.trim() || !newCookware.type) return;
+    
+    try {
+      const updatedKitchen = await api.saveKitchen(user.id, kitchen.appliances, [...kitchen.cookware, newCookware]);
+      setKitchen(prev => ({
+        ...prev,
+        cookware: updatedKitchen.cookware
+      }));
+      setNewCookware({ name: '', type: '' });
+    } catch (error) {
+      console.error('Error adding cookware:', error);
+    }
+  };
+
+  const removeAppliance = async (index) => {
+    try {
+      const newAppliances = kitchen.appliances.filter((_, i) => i !== index);
+      const updatedKitchen = await api.saveKitchen(user.id, newAppliances, kitchen.cookware);
+      setKitchen(prev => ({
+        ...prev,
+        appliances: updatedKitchen.appliances
+      }));
+    } catch (error) {
+      console.error('Error removing appliance:', error);
+    }
+  };
+
+  const removeCookware = async (index) => {
+    try {
+      const newCookware = kitchen.cookware.filter((_, i) => i !== index);
+      const updatedKitchen = await api.saveKitchen(user.id, kitchen.appliances, newCookware);
+      setKitchen(prev => ({
+        ...prev,
+        cookware: updatedKitchen.cookware
+      }));
+    } catch (error) {
+      console.error('Error removing cookware:', error);
+    }
+  };
+
   const savePreferences = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      const response = await api.updateUserPreferences(user.id, preferences);
+      await api.updateUserPreferences(user.id, preferences);
+      // Refresh user data in context
+      await refreshUser();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-      
-      // Update user context with new preferences
-      const updatedUser = {
-        ...user,
-        preferences: response.preferences || preferences
-      };
-      updateUser(updatedUser);
-      
-      // Check for new achievements
-      if (response.newAchievements && response.newAchievements.length > 0) {
-        setNewAchievements(response.newAchievements);
-      }
     } catch (error) {
       console.error('Error saving preferences:', error);
     } finally {
@@ -391,6 +470,126 @@ export default function UserPreferences() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Keukenapparaten */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ChefHat className="h-5 w-5 text-blue-500" />
+            Keukenapparaten
+          </CardTitle>
+          <CardDescription>
+            Welke apparaten heb je beschikbaar in je keuken?
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              value={newAppliance.name}
+              onChange={(e) => setNewAppliance(prev => ({...prev, name: e.target.value}))}
+              placeholder="Apparaat naam (bijv. Combi-oven)"
+              className="flex-1"
+            />
+            <Select 
+              value={newAppliance.type} 
+              onValueChange={(value) => setNewAppliance(prev => ({...prev, type: value}))}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Type apparaat" />
+              </SelectTrigger>
+              <SelectContent>
+                {applianceTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={addAppliance} size="sm" disabled={!newAppliance.name.trim() || !newAppliance.type}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {kitchen.appliances.map((appliance, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div>
+                  <div className="font-medium text-blue-800">{appliance.name}</div>
+                  <div className="text-sm text-blue-600 capitalize">{appliance.type}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeAppliance(index)}
+                  className="text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Kookgerei */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Utensils className="h-5 w-5 text-green-500" />
+            Kookgerei
+          </CardTitle>
+          <CardDescription>
+            Welk kookgerei heb je beschikbaar?
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              value={newCookware.name}
+              onChange={(e) => setNewCookware(prev => ({...prev, name: e.target.value}))}
+              placeholder="Kookgerei naam (bijv. Anti-aanbak pan 28cm)"
+              className="flex-1"
+            />
+            <Select 
+              value={newCookware.type} 
+              onValueChange={(value) => setNewCookware(prev => ({...prev, type: value}))}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Type kookgerei" />
+              </SelectTrigger>
+              <SelectContent>
+                {cookwareTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={addCookware} size="sm" disabled={!newCookware.name.trim() || !newCookware.type}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {kitchen.cookware.map((cookware, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div>
+                  <div className="font-medium text-green-800">{cookware.name}</div>
+                  <div className="text-sm text-green-600 capitalize">{cookware.type}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeCookware(index)}
+                  className="text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Opslaan knop */}
       <div className="flex justify-end">

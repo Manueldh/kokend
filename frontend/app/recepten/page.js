@@ -125,10 +125,10 @@ function ReceptenContent() {
 
                 <div className="flex space-x-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
-                    <a href={`/recepten/${recept._id}`}>
+                    <Link href={`/recepten/${recept._id}`}>
                       <Eye className="h-4 w-4 mr-1" />
                       Bekijk
-                    </a>
+                    </Link>
                   </Button>
                   <Button 
                     variant="outline" 

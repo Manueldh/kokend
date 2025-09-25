@@ -138,13 +138,17 @@ export const api = {
     return handleResponse(response);
   },
 
-  async saveKitchen(userId, appliances) {
+  async saveKitchen(userId, appliances, cookware) {
     const response = await fetch(`${apiConfig.baseUrl}${apiConfig.endpoints.kitchen.save}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, appliances }),
+      body: JSON.stringify({ 
+        userId, 
+        appliances: appliances || [],
+        cookware: cookware || []
+      }),
     });
     
     return handleResponse(response);
