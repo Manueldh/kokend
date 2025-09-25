@@ -7,7 +7,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://kokend.vercel.app', 'https://kokend-git-live-manueldh.vercel.app'] // Je production URLs
+    : true, // Allow all in development
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Valideer OpenAI configuratie bij opstarten

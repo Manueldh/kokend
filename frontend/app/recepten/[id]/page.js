@@ -32,7 +32,7 @@ function ReceptDetailContent({ params }) {
   useEffect(() => {
     const fetchRecept = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/recipes/${id}`);
+        const res = await fetch(apiUrl(`/api/recipes/${id}`));
         if (res.ok) {
           const data = await res.json();
           setRecept(data);

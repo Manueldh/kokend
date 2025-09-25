@@ -1,5 +1,11 @@
 {
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://your-backend-url.onrender.com"
-  }
+    "NEXT_PUBLIC_API_URL": "https://kokend-backend.onrender.com"
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
 }

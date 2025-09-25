@@ -79,7 +79,7 @@ function KeukenContent() {
 
   const saveKeuken = async (updatedKeuken) => {
     try {
-      const response = await fetch('http://localhost:3001/api/kitchen', {
+      const response = await fetch(apiUrl('/api/kitchen'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
