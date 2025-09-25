@@ -10,6 +10,7 @@ import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import DigitalStove from "@/components/DigitalStove";
 import { useUser } from "../../../components/UserProvider";
 import ProtectedRoute from "../../../components/ProtectedRoute";
+import { apiUrl } from "../../../lib/api";
 
 function ReceptDetailContent({ params }) {
   const { user } = useUser();
