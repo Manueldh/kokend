@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const achievementService = require('../services/achievementService');
 
 // Simple login with username only
 router.post('/login', async (req, res) => {
@@ -80,12 +81,32 @@ router.put('/preferences/:userId', async (req, res) => {
     };
     
     await user.save();
+
+    // Check if user has set meaningful preferences for achievement
+    const hasPreferences = user.preferences && (
+      user.preferences.favoriteIngredients?.length > 0 ||
+      user.preferences.dislikedIngredients?.length > 0 ||
+      user.preferences.favoriteCuisines?.length > 0 ||
+      user.preferences.dietaryRestrictions?.length > 0 ||
+      user.preferences.allergies?.length > 0 ||
+      user.preferences.spiceLevel !== 'gemiddeld' ||
+      user.preferences.cookingTime !== 'geen-voorkeur'
+    );
+
+    // Update achievement stats
+    let newAchievements = [];
+    if (hasPreferences) {
+      newAchievements = await achievementService.updateStats(userId, {
+        preferencesSet: true
+      });
+    }
     
     res.json({
       id: user._id,
       username: user.username,
       displayName: user.displayName,
-      preferences: user.preferences
+      preferences: user.preferences,
+      newAchievements
     });
   } catch (error) {
     console.error('Update preferences error:', error);

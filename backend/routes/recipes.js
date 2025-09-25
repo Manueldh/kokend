@@ -3,6 +3,7 @@ const router = express.Router();
 const Recipe = require('../models/Recipe');
 const Kitchen = require('../models/Kitchen');
 const OpenAIService = require('../services/openaiService');
+const achievementService = require('../services/achievementService');
 
 // POST - Genereer recept met AI
 router.post('/generate', async (req, res) => {
@@ -17,11 +18,29 @@ router.post('/generate', async (req, res) => {
       guestPreferences = {} // Nieuw: voor gastvoorkeuren
     } = req.body;
     
-    if (!ingredients || !request) {
+    console.log('📝 Request data:', {
+      userId: userId || 'Guest',
+      ingredients: ingredients?.substring(0, 100) + '...',
+      request: request?.substring(0, 50) + '...' || 'No specific request',
+      servings,
+      onlyUseMyIngredients,
+      allergiesCount: allergies.length,
+      guestPreferencesKeys: Object.keys(guestPreferences)
+    });
+    
+    // Alleen ingredients is verplicht, request is optioneel
+    if (!ingredients) {
+      console.log('❌ Validation failed: Missing ingredients');
       return res.status(400).json({ 
-        message: 'ingredients en request zijn vereist' 
+        message: 'ingredients is vereist' 
       });
     }
+    
+    // Als geen specifiek request is gegeven, gebruik een standaard waarde
+    const finalRequest = request || 'een lekker gerecht';
+    console.log('🎯 Final request:', finalRequest);
+
+    console.log('✅ Input validation passed');
 
     // Haal gebruikersvoorkeuren op als ingelogd
     let userPreferences = null;
@@ -49,7 +68,7 @@ router.post('/generate', async (req, res) => {
       // Probeer AI recept te genereren met voorkeuren
       recipeData = await openaiService.generateRecipe(
         ingredients, 
-        request, 
+        finalRequest, 
         kitchen, 
         servings, 
         onlyUseMyIngredients,
@@ -58,7 +77,7 @@ router.post('/generate', async (req, res) => {
     } catch (aiError) {
       console.error('AI generation failed, using fallback:', aiError);
       // Gebruik fallback als AI faalt
-      recipeData = openaiService.createFallbackRecipe(ingredients, request, servings);
+      recipeData = openaiService.createFallbackRecipe(ingredients, finalRequest, servings);
     }
     
     // Sla het gegenereerde recept alleen op voor ingelogde gebruikers
@@ -68,7 +87,7 @@ router.post('/generate', async (req, res) => {
         title: recipeData.title,
         ingredients: recipeData.ingredients,
         userIngredients: ingredients,
-        userRequest: request,
+        userRequest: finalRequest,
         steps: recipeData.steps,
         totalTime: recipeData.totalTime,
         difficulty: recipeData.difficulty,
@@ -78,7 +97,53 @@ router.post('/generate', async (req, res) => {
       });
       
       const savedRecipe = await recipe.save();
-      res.json(savedRecipe);
+
+      // Update achievement stats for recipe generation
+      const statsUpdate = {
+        recipesGenerated: 1,
+        totalCookingTime: recipeData.totalTime || 0
+      };
+
+      // Check recipe complexity
+      if (recipeData.difficulty === 'moeilijk' || recipeData.totalTime > 60) {
+        statsUpdate.masterChefRecipes = 1;
+      }
+
+      // Check speed cooking
+      if (recipeData.totalTime <= 15) {
+        statsUpdate.speedCookRecipes = 1;
+      }
+
+      // Check cuisine type (if available in recipe data)
+      if (recipeData.cuisine && recipeData.cuisine !== 'nederlands') {
+        statsUpdate.internationalRecipes = 1;
+        statsUpdate.cuisinesExplored = [recipeData.cuisine];
+      }
+
+      // Check vegetarian
+      const isVegetarian = recipeData.ingredients?.every(ing => 
+        !['kip', 'rundvlees', 'varkensvlees', 'vis', 'zalm', 'tonijn', 'garnalen', 'ham', 'spek'].some(meat => 
+          ing.name?.toLowerCase().includes(meat)
+        )
+      );
+      if (isVegetarian) {
+        statsUpdate.vegetarianRecipes = 1;
+      }
+
+      // Track appliances used
+      const appliances = recipeData.steps?.map(step => step.appliance).filter(Boolean) || [];
+      if (appliances.length > 0) {
+        statsUpdate.appliancesUsed = [...new Set(appliances)];
+      }
+
+      // Update stats and check for new achievements
+      const newAchievements = await achievementService.updateStats(userId, statsUpdate);
+      
+      // Include new achievements in response
+      res.json({
+        ...savedRecipe.toObject(),
+        newAchievements
+      });
     } else {
       // Voor gastgebruikers, stuur alleen de receptdata terug zonder op te slaan
       res.json({

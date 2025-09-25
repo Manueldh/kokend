@@ -28,6 +28,11 @@ export const UserProvider = ({ children }) => {
     setUserState(userData);
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    setUserState(userData);
+  };
+
   const logout = () => {
     clearUser();
     setUserState(null);
@@ -41,6 +46,7 @@ export const UserProvider = ({ children }) => {
         isAuthenticated: !!user,
         isLoading,
         login,
+        updateUser,
         logout,
       }}
     >

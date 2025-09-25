@@ -10,22 +10,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X, Heart, AlertTriangle, Globe, Clock } from "lucide-react";
 import { useUser } from "./UserProvider";
 import { api } from "../lib/api";
+import AchievementNotification from "./AchievementNotification";
 
 export default function UserPreferences() {
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
   const [preferences, setPreferences] = useState({
     favoriteIngredients: [],
     dislikedIngredients: [],
     favoriteCuisines: [],
     dietaryRestrictions: [],
+    allergies: [],
     spiceLevel: 'gemiddeld',
     cookingTime: 'geen-voorkeur'
   });
   
   const [newFavoriteIngredient, setNewFavoriteIngredient] = useState('');
   const [newDislikedIngredient, setNewDislikedIngredient] = useState('');
+  const [newAllergy, setNewAllergy] = useState('');
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [newAchievements, setNewAchievements] = useState(null);
 
   const cuisineTypes = [
     'italiensk', 'aziatisch', 'frans', 'grieks', 'spaans', 'mexicaans',
@@ -45,6 +49,7 @@ export default function UserPreferences() {
         dislikedIngredients: user.preferences.dislikedIngredients || [],
         favoriteCuisines: user.preferences.favoriteCuisines || [],
         dietaryRestrictions: user.preferences.dietaryRestrictions || [],
+        allergies: user.preferences.allergies || [],
         spiceLevel: user.preferences.spiceLevel || 'gemiddeld',
         cookingTime: user.preferences.cookingTime || 'geen-voorkeur'
       });
@@ -85,6 +90,23 @@ export default function UserPreferences() {
     }));
   };
 
+  const addAllergy = () => {
+    if (newAllergy.trim() && !preferences.allergies.includes(newAllergy.trim())) {
+      setPreferences(prev => ({
+        ...prev,
+        allergies: [...prev.allergies, newAllergy.trim()]
+      }));
+      setNewAllergy('');
+    }
+  };
+
+  const removeAllergy = (allergy) => {
+    setPreferences(prev => ({
+      ...prev,
+      allergies: prev.allergies.filter(item => item !== allergy)
+    }));
+  };
+
   const toggleCuisine = (cuisine) => {
     setPreferences(prev => ({
       ...prev,
@@ -108,9 +130,21 @@ export default function UserPreferences() {
     
     setLoading(true);
     try {
-      await api.updateUserPreferences(user.id, preferences);
+      const response = await api.updateUserPreferences(user.id, preferences);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      
+      // Update user context with new preferences
+      const updatedUser = {
+        ...user,
+        preferences: response.preferences || preferences
+      };
+      updateUser(updatedUser);
+      
+      // Check for new achievements
+      if (response.newAchievements && response.newAchievements.length > 0) {
+        setNewAchievements(response.newAchievements);
+      }
     } catch (error) {
       console.error('Error saving preferences:', error);
     } finally {
@@ -256,6 +290,56 @@ export default function UserPreferences() {
         </CardContent>
       </Card>
 
+      {/* Allergieën */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            Allergieën
+          </CardTitle>
+          <CardDescription>
+            Voeg je allergieën toe zodat deze automatisch vermeden worden in recepten
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              value={newAllergy}
+              onChange={(e) => setNewAllergy(e.target.value)}
+              placeholder="Bijvoorbeeld: noten, gluten, lactose..."
+              onKeyPress={(e) => e.key === 'Enter' && addAllergy()}
+            />
+            <Button onClick={addAllergy} size="sm" className="shrink-0">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {preferences.allergies.map((allergy, index) => (
+              <Badge
+                key={index}
+                variant="destructive"
+                className="flex items-center gap-1 px-3 py-1"
+              >
+                {allergy}
+                <button
+                  onClick={() => removeAllergy(allergy)}
+                  className="ml-1 hover:bg-red-700 rounded-full p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          
+          {preferences.allergies.length === 0 && (
+            <p className="text-sm text-gray-500 italic">
+              Nog geen allergieën toegevoegd. Voeg ze toe voor veiligere recepten.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Kruiden & Bereidingstijd */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
@@ -318,6 +402,14 @@ export default function UserPreferences() {
           {loading ? 'Opslaan...' : saved ? '✓ Opgeslagen!' : 'Voorkeuren Opslaan'}
         </Button>
       </div>
+
+      {/* Achievement Notification */}
+      {newAchievements && (
+        <AchievementNotification 
+          achievements={newAchievements} 
+          onClose={() => setNewAchievements(null)} 
+        />
+      )}
     </div>
   );
 }

@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle } from "lucide-react";
+import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle, User } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
+import AchievementNotification from "@/components/AchievementNotification";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
 import { useUser } from "@/components/UserProvider";
 import { apiUrl } from '../lib/api';
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [ownedIngredients, setOwnedIngredients] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [newAchievements, setNewAchievements] = useState(null);
   
   // Shared burner state for all DigitalStove components
   const [burners, setBurners] = useState([
@@ -47,6 +49,11 @@ export default function HomePage() {
     ]);
     
     try {
+      // Combine user's saved allergies with form allergies
+      const userAllergies = user?.preferences?.allergies || [];
+      const formAllergies = allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [];
+      const allAllergies = [...new Set([...userAllergies, ...formAllergies])]; // Remove duplicates
+      
       const response = await fetch(apiUrl('/api/recipes/generate'), {
         method: 'POST',
         headers: {
@@ -58,13 +65,19 @@ export default function HomePage() {
           request: gerecht,
           servings,
           onlyUseMyIngredients,
-          allergies: allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+          allergies: allAllergies,
         }),
       });
       
       if (response.ok) {
         const data = await response.json();
         setRecept(data);
+        
+        // Show achievement notifications if any
+        if (data.newAchievements && data.newAchievements.length > 0) {
+          setNewAchievements(data.newAchievements);
+        }
+        
         // initialize owned ingredients
         const userText = (data.userIngredients || '').toLowerCase();
         const owned = new Set();
@@ -85,8 +98,32 @@ export default function HomePage() {
     }
   };
 
-  const handleStepComplete = (stepNumber) => {
+  const handleStepComplete = async (stepNumber) => {
     setCompletedSteps(prev => [...new Set([...prev, stepNumber])]);
+    
+    // Update achievement stats for step completion
+    if (user?.id) {
+      try {
+        const response = await fetch(apiUrl(`/api/achievements/stats/${user.id}`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            stepsCompleted: 1
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.newAchievements && data.newAchievements.length > 0) {
+            setNewAchievements(data.newAchievements);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating step achievement:', error);
+      }
+    }
   };
 
   const toggleOwned = (ing) => {
@@ -136,6 +173,76 @@ export default function HomePage() {
           <CardDescription>
             Vul je ingrediënten en gewenste gerecht in om een persoonlijk recept met slimme timers te krijgen
           </CardDescription>
+          
+          {/* User Preferences Preview */}
+          {user && user.preferences && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Je persoonlijke instellingen:
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {/* Preferences Column */}
+                <div className="space-y-2">
+                  {user.preferences?.favoriteIngredients?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-blue-800">💖 Favorieten: </span>
+                      <span className="text-blue-700">{user.preferences.favoriteIngredients.slice(0, 3).join(', ')}{user.preferences.favoriteIngredients.length > 3 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.allergies?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-red-800">⚠️ Allergieën: </span>
+                      <span className="text-red-700">{user.preferences.allergies.slice(0, 3).join(', ')}{user.preferences.allergies.length > 3 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.favoriteCuisines?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-blue-800">🌍 Keukens: </span>
+                      <span className="text-blue-700">{user.preferences.favoriteCuisines.slice(0, 2).join(', ')}{user.preferences.favoriteCuisines.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.spiceLevel && user.preferences.spiceLevel !== 'gemiddeld' && (
+                    <div>
+                      <span className="font-medium text-blue-800">🌶️ Kruiden: </span>
+                      <span className="text-blue-700">{user.preferences.spiceLevel}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.cookingTime && user.preferences.cookingTime !== 'geen-voorkeur' && (
+                    <div>
+                      <span className="font-medium text-blue-800">⏱️ Tijd: </span>
+                      <span className="text-blue-700">{user.preferences.cookingTime}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info/Tips Column */}
+                <div className="space-y-2">
+                  {user.preferences?.dietaryRestrictions?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-green-800">🥗 Dieet: </span>
+                      <span className="text-green-700">{user.preferences.dietaryRestrictions.slice(0, 2).join(', ')}{user.preferences.dietaryRestrictions.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.dislikedIngredients?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-gray-800">❌ Vermijd: </span>
+                      <span className="text-gray-700">{user.preferences.dislikedIngredients.slice(0, 2).join(', ')}{user.preferences.dislikedIngredients.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  <div className="text-blue-600 italic pt-1">
+                    💡 Wijzig in <a href="/voorkeuren" className="underline hover:no-underline font-medium">voorkeuren</a> • <a href="/keuken" className="underline hover:no-underline font-medium">keuken setup</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -181,17 +288,47 @@ export default function HomePage() {
             <div className="space-y-2">
               <Label htmlFor="allergies" className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
-                Allergieën (optioneel)
+                {user ? 'Extra Allergieën (optioneel)' : 'Allergieën (optioneel)'}
               </Label>
+              
+              {/* Toon opgeslagen allergieën als badges */}
+              {user && user.preferences?.allergies?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-green-800 text-sm font-medium mb-2">
+                      ✅ Je opgeslagen allergieën:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preferences.allergies.map((allergy, index) => (
+                        <Badge
+                          key={index}
+                          variant="destructive"
+                          className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 border-red-300"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          {allergy}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-green-700 text-xs mt-2">
+                      Deze worden automatisch vermeden in alle je recepten
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <Input
                 id="allergies"
                 value={allergies}
                 onChange={(e) => setAllergies(e.target.value)}
-                placeholder="Bijvoorbeeld: noten, gluten, lactose, schaaldieren..."
+                placeholder={user ? "Extra allergieën voor dit recept..." : "Bijvoorbeeld: noten, gluten, lactose, schaaldieren..."}
                 className="border-red-200 focus:border-red-400"
               />
               <p className="text-sm text-gray-500">
-                Voer allergieën in gescheiden door komma&apos;s. Deze worden strikt vermeden in het recept.
+                {user ? 
+                  "Voeg extra allergieën toe die voor dit specifieke recept vermeden moeten worden." :
+                  "Voer allergieën in gescheiden door komma's. Deze worden strikt vermeden in het recept."
+                }
               </p>
             </div>
             
@@ -296,7 +433,7 @@ export default function HomePage() {
                   </CardContent>
               </Card>
 
-              {/* Recipe Steps with Stove Controls */}
+              {/* Recipe Steps with Stove Controls - Combined */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -335,6 +472,14 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Achievement Notification */}
+      {newAchievements && (
+        <AchievementNotification 
+          achievements={newAchievements} 
+          onClose={() => setNewAchievements(null)} 
+        />
       )}
     </div>
   );
