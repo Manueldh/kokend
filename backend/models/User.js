@@ -33,6 +33,10 @@ const UserSchema = new mongoose.Schema({
       enum: ['vegetarisch', 'veganistisch', 'glutenvrij', 'lactosevrij', 'suikervrij', 'koolhydraatarm', 'halal', 'kosher', 'andere'],
       trim: true
     }],
+    allergies: [{
+      type: String,
+      trim: true
+    }],
     spiceLevel: {
       type: String,
       enum: ['mild', 'gemiddeld', 'pittig', 'zeer-pittig'],

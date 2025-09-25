@@ -49,6 +49,11 @@ export default function HomePage() {
     ]);
     
     try {
+      // Combine user's saved allergies with form allergies
+      const userAllergies = user?.preferences?.allergies || [];
+      const formAllergies = allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [];
+      const allAllergies = [...new Set([...userAllergies, ...formAllergies])]; // Remove duplicates
+      
       const response = await fetch(apiUrl('/api/recipes/generate'), {
         method: 'POST',
         headers: {
@@ -60,7 +65,7 @@ export default function HomePage() {
           request: gerecht,
           servings,
           onlyUseMyIngredients,
-          allergies: allergies ? allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+          allergies: allAllergies,
         }),
       });
       
@@ -213,17 +218,47 @@ export default function HomePage() {
             <div className="space-y-2">
               <Label htmlFor="allergies" className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
-                Allergieën (optioneel)
+                {user ? 'Extra Allergieën (optioneel)' : 'Allergieën (optioneel)'}
               </Label>
+              
+              {/* Toon opgeslagen allergieën als badges */}
+              {user && user.preferences?.allergies?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-green-800 text-sm font-medium mb-2">
+                      ✅ Je opgeslagen allergieën:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preferences.allergies.map((allergy, index) => (
+                        <Badge
+                          key={index}
+                          variant="destructive"
+                          className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 border-red-300"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          {allergy}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-green-700 text-xs mt-2">
+                      Deze worden automatisch vermeden in alle je recepten
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <Input
                 id="allergies"
                 value={allergies}
                 onChange={(e) => setAllergies(e.target.value)}
-                placeholder="Bijvoorbeeld: noten, gluten, lactose, schaaldieren..."
+                placeholder={user ? "Extra allergieën voor dit recept..." : "Bijvoorbeeld: noten, gluten, lactose, schaaldieren..."}
                 className="border-red-200 focus:border-red-400"
               />
               <p className="text-sm text-gray-500">
-                Voer allergieën in gescheiden door komma&apos;s. Deze worden strikt vermeden in het recept.
+                {user ? 
+                  "Voeg extra allergieën toe die voor dit specifieke recept vermeden moeten worden." :
+                  "Voer allergieën in gescheiden door komma's. Deze worden strikt vermeden in het recept."
+                }
               </p>
             </div>
             

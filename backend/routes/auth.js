@@ -88,6 +88,7 @@ router.put('/preferences/:userId', async (req, res) => {
       user.preferences.dislikedIngredients?.length > 0 ||
       user.preferences.favoriteCuisines?.length > 0 ||
       user.preferences.dietaryRestrictions?.length > 0 ||
+      user.preferences.allergies?.length > 0 ||
       user.preferences.spiceLevel !== 'gemiddeld' ||
       user.preferences.cookingTime !== 'geen-voorkeur'
     );
