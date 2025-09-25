@@ -18,11 +18,29 @@ router.post('/generate', async (req, res) => {
       guestPreferences = {} // Nieuw: voor gastvoorkeuren
     } = req.body;
     
-    if (!ingredients || !request) {
+    console.log('📝 Request data:', {
+      userId: userId || 'Guest',
+      ingredients: ingredients?.substring(0, 100) + '...',
+      request: request?.substring(0, 50) + '...' || 'No specific request',
+      servings,
+      onlyUseMyIngredients,
+      allergiesCount: allergies.length,
+      guestPreferencesKeys: Object.keys(guestPreferences)
+    });
+    
+    // Alleen ingredients is verplicht, request is optioneel
+    if (!ingredients) {
+      console.log('❌ Validation failed: Missing ingredients');
       return res.status(400).json({ 
-        message: 'ingredients en request zijn vereist' 
+        message: 'ingredients is vereist' 
       });
     }
+    
+    // Als geen specifiek request is gegeven, gebruik een standaard waarde
+    const finalRequest = request || 'een lekker gerecht';
+    console.log('🎯 Final request:', finalRequest);
+
+    console.log('✅ Input validation passed');
 
     // Haal gebruikersvoorkeuren op als ingelogd
     let userPreferences = null;
@@ -50,7 +68,7 @@ router.post('/generate', async (req, res) => {
       // Probeer AI recept te genereren met voorkeuren
       recipeData = await openaiService.generateRecipe(
         ingredients, 
-        request, 
+        finalRequest, 
         kitchen, 
         servings, 
         onlyUseMyIngredients,
@@ -59,7 +77,7 @@ router.post('/generate', async (req, res) => {
     } catch (aiError) {
       console.error('AI generation failed, using fallback:', aiError);
       // Gebruik fallback als AI faalt
-      recipeData = openaiService.createFallbackRecipe(ingredients, request, servings);
+      recipeData = openaiService.createFallbackRecipe(ingredients, finalRequest, servings);
     }
     
     // Sla het gegenereerde recept alleen op voor ingelogde gebruikers
@@ -69,7 +87,7 @@ router.post('/generate', async (req, res) => {
         title: recipeData.title,
         ingredients: recipeData.ingredients,
         userIngredients: ingredients,
-        userRequest: request,
+        userRequest: finalRequest,
         steps: recipeData.steps,
         totalTime: recipeData.totalTime,
         difficulty: recipeData.difficulty,
