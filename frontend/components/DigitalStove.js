@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Play, Pause, Square, RotateCcw, Flame, ThermometerSun, ChefHat, Clock, X } from "lucide-react";
+import { Play, Pause, Square, RotateCcw, Flame, ThermometerSun, ChefHat, Clock, X, Check } from "lucide-react";
+import confetti from 'canvas-confetti';
 
 const BURNER_COLORS = {
   off: 'bg-gray-300',
@@ -38,6 +39,7 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
   const [cookingStarted, setCookingStarted] = useState(false);
   const [nextSuggestion, setNextSuggestion] = useState(null);
   const [showSuggestionPopup, setShowSuggestionPopup] = useState(false);
+  const [manualCompletedSteps, setManualCompletedSteps] = useState(new Set());
   const intervalRefs = useRef({});
   const audioRef = useRef(null);
   const globalTimerRef = useRef(null);
@@ -274,6 +276,92 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
 
   const resetTimer = (burnerId) => {
     stopTimer(burnerId);
+  };
+
+  // Manual step completion functions
+  const toggleManualStepComplete = (stepNumber) => {
+    const newCompletedSteps = new Set(manualCompletedSteps);
+    
+    if (manualCompletedSteps.has(stepNumber)) {
+      newCompletedSteps.delete(stepNumber);
+    } else {
+      newCompletedSteps.add(stepNumber);
+    }
+    
+    setManualCompletedSteps(newCompletedSteps);
+    
+    // Check if all steps are completed
+    const totalSteps = getAllSteps().length;
+    if (newCompletedSteps.size === totalSteps && totalSteps > 0) {
+      triggerConfetti();
+    }
+  };
+
+  // Trigger confetti animation
+  const triggerConfetti = () => {
+    // Multiple confetti bursts for celebration
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    
+    const randomInRange = (min, max) => {
+      return Math.random() * (max - min) + min;
+    };
+
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+      
+      const particleCount = 50 * (timeLeft / duration);
+      
+      // Left side burst
+      confetti({
+        particleCount: particleCount,
+        startVelocity: 30,
+        spread: 360,
+        origin: {
+          x: randomInRange(0.1, 0.3),
+          y: Math.random() - 0.2
+        }
+      });
+      
+      // Right side burst  
+      confetti({
+        particleCount: particleCount,
+        startVelocity: 30,
+        spread: 360,
+        origin: {
+          x: randomInRange(0.7, 0.9),
+          y: Math.random() - 0.2
+        }
+      });
+    }, 250);
+    
+    // Center burst
+    confetti({
+      particleCount: 100,
+      startVelocity: 45,
+      spread: 360,
+      origin: {
+        x: 0.5,
+        y: 0.5
+      }
+    });
+
+    // Extra celebration burst after 1 second
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        startVelocity: 30,
+        spread: 360,
+        origin: {
+          x: 0.5,
+          y: 0.3
+        }
+      });
+    }, 1000);
   };
 
   const showNotification = (burnerId, action, step) => {
@@ -534,6 +622,10 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
               <Flame className="h-5 w-5 text-orange-600" />
               <span>Digitaal Fornuis</span>
             </CardTitle>
+            <div className="text-sm text-gray-600 mt-2">
+              <p>🔥 Klik op de nummers om stappen op het fornuis te plaatsen</p>
+              <p>⏱️ Timers starten automatisch wanneer je een stap op een pit zet</p>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Stove Top - 2x2 Grid */}
@@ -609,31 +701,83 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
       {showSteps && (
         <Card data-steps-section>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <ChefHat className="h-3 w-3 md:h-4 md:w-4" />
-              <span>Alle receptstappen</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ChefHat className="h-4 w-4" />
+                <span>Receptstappen</span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                  {manualCompletedSteps.size} / {getAllSteps().length}
+                </Badge>
+              </div>
+              {manualCompletedSteps.size > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setManualCompletedSteps(new Set())}
+                  className="text-xs"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset
+                </Button>
+              )}
+            </div>
+            {manualCompletedSteps.size === getAllSteps().length && getAllSteps().length > 0 && (
+              <div className="bg-green-100 border border-green-200 rounded-lg p-3 mt-2">
+                <div className="flex items-center space-x-2 text-green-800">
+                  <Check className="h-5 w-5" />
+                  <span className="font-medium">🎉 Gefeliciteerd! Alle stappen zijn voltooid!</span>
+                </div>
+                <p className="text-sm text-green-700 mt-1">
+                  Je recept is helemaal klaar. Geniet van je maaltijd!
+                </p>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-2 md:space-y-3">
               {getAllSteps().map(step => {
                 const burnerWithStep = actualBurners.find(b => b.step?.stepNumber === step.stepNumber);
                 const isInUse = !!burnerWithStep;
+                const isManuallyCompleted = manualCompletedSteps.has(step.stepNumber);
                 
                 return (
-                  <div key={step.stepNumber} className={`border rounded-lg p-3 md:p-4 ${
-                    isInUse ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
+                  <div key={step.stepNumber} className={`border rounded-lg p-3 md:p-4 transition-all ${
+                    isManuallyCompleted ? 'bg-green-50 border-green-200' :
+                    isInUse ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 hover:bg-gray-100'
                   }`}>
                     <div className="mb-3">
                         <div className="flex items-center space-x-2 mb-2">
-                        <div className="font-medium text-sm md:text-base">Stap {step.stepNumber} - {getStepShortTitle(step)}</div>
+                        <button
+                          onClick={() => toggleManualStepComplete(step.stepNumber)}
+                          className={`flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded border-2 transition-all hover:scale-110 ${
+                            isManuallyCompleted 
+                              ? 'bg-green-500 border-green-500 text-white' 
+                              : 'border-gray-300 hover:border-green-400 bg-white'
+                          }`}
+                        >
+                          {isManuallyCompleted && (
+                            <Check className="w-full h-full p-0.5" />
+                          )}
+                        </button>
+                        <div className={`font-medium text-sm md:text-base transition-all ${
+                          isManuallyCompleted ? 'line-through text-gray-500' : ''
+                        }`}>
+                          Stap {step.stepNumber} - {getStepShortTitle(step)}
+                        </div>
                         {isInUse && (
                           <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
                             Op pit {burnerWithStep.id}
                           </Badge>
                         )}
+                        {isManuallyCompleted && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                            ✓ Klaar
+                          </Badge>
+                        )}
                       </div>
-                      <div className="text-xs md:text-sm text-gray-600 leading-relaxed mb-3">
+                      <div className={`text-xs md:text-sm leading-relaxed mb-3 transition-all ${
+                        isManuallyCompleted ? 'text-gray-500 line-through' : 'text-gray-600'
+                      }`}>
                         {step.description}
                       </div>
                       <div className="flex items-center space-x-1 md:space-x-2 flex-wrap mb-3">
@@ -651,28 +795,34 @@ export default function DigitalStove({ recipe, onStepComplete, showSteps = true,
                     </div>
                     
                     {!isInUse && (
-                      <div className="flex justify-center">
-                        <div className="flex space-x-2">
-                          {[1, 2, 3, 4].map(burnerId => {
-                            const burner = actualBurners.find(b => b.id === burnerId);
-                            const available = !burner.step;
-                            return (
-                              <Button
-                                key={burnerId}
-                                size="sm"
-                                variant={available ? "default" : "secondary"}
-                                disabled={!available}
-                                onClick={() => available && startTimer(burnerId, step)}
-                                className="w-8 h-8 md:w-10 md:h-10 p-0 text-xs rounded-md border-2"
-                                style={{
-                                  borderRadius: '6px',
-                                  aspectRatio: '1'
-                                }}
-                              >
-                                {burnerId}
-                              </Button>
-                            );
-                          })}
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500 mb-2">
+                          Kies een pit om deze stap te starten
+                        </div>
+                        <div className="flex justify-center">
+                          <div className="flex space-x-2">
+                            {[1, 2, 3, 4].map(burnerId => {
+                              const burner = actualBurners.find(b => b.id === burnerId);
+                              const available = !burner.step;
+                              return (
+                                <Button
+                                  key={burnerId}
+                                  size="sm"
+                                  variant={available ? "default" : "secondary"}
+                                  disabled={!available}
+                                  onClick={() => available && startTimer(burnerId, step)}
+                                  className="w-8 h-8 md:w-10 md:h-10 p-0 text-xs rounded-md border-2"
+                                  style={{
+                                    borderRadius: '6px',
+                                    aspectRatio: '1'
+                                  }}
+                                  title={available ? `Start stap op pit ${burnerId}` : `Pit ${burnerId} is bezet`}
+                                >
+                                  {burnerId}
+                                </Button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}

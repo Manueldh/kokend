@@ -433,7 +433,7 @@ export default function HomePage() {
                   </CardContent>
               </Card>
 
-              {/* Recipe Steps with Stove Controls */}
+              {/* Recipe Steps with Stove Controls - Combined */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
