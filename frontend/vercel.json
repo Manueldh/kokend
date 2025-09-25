@@ -1,8 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "functions": {
-    "app/**": {
-      "runtime": "nodejs18.x"
-    }
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://kokend.onrender.com"
   }
 }
