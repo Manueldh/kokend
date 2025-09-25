@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle } from "lucide-react";
+import { ChefHat, Clock, Users, Utensils, Lightbulb, Timer, ThermometerSun, CheckCircle, AlertTriangle, User } from "lucide-react";
 import DigitalStove from "@/components/DigitalStove";
 import AchievementNotification from "@/components/AchievementNotification";
 import { normalizeIngredient, ingredientMatches } from '@/lib/utils';
@@ -173,6 +173,76 @@ export default function HomePage() {
           <CardDescription>
             Vul je ingrediënten en gewenste gerecht in om een persoonlijk recept met slimme timers te krijgen
           </CardDescription>
+          
+          {/* User Preferences Preview */}
+          {user && user.preferences && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Je persoonlijke instellingen:
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {/* Preferences Column */}
+                <div className="space-y-2">
+                  {user.preferences?.favoriteIngredients?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-blue-800">💖 Favorieten: </span>
+                      <span className="text-blue-700">{user.preferences.favoriteIngredients.slice(0, 3).join(', ')}{user.preferences.favoriteIngredients.length > 3 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.allergies?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-red-800">⚠️ Allergieën: </span>
+                      <span className="text-red-700">{user.preferences.allergies.slice(0, 3).join(', ')}{user.preferences.allergies.length > 3 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.favoriteCuisines?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-blue-800">🌍 Keukens: </span>
+                      <span className="text-blue-700">{user.preferences.favoriteCuisines.slice(0, 2).join(', ')}{user.preferences.favoriteCuisines.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.spiceLevel && user.preferences.spiceLevel !== 'gemiddeld' && (
+                    <div>
+                      <span className="font-medium text-blue-800">🌶️ Kruiden: </span>
+                      <span className="text-blue-700">{user.preferences.spiceLevel}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.cookingTime && user.preferences.cookingTime !== 'geen-voorkeur' && (
+                    <div>
+                      <span className="font-medium text-blue-800">⏱️ Tijd: </span>
+                      <span className="text-blue-700">{user.preferences.cookingTime}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info/Tips Column */}
+                <div className="space-y-2">
+                  {user.preferences?.dietaryRestrictions?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-green-800">🥗 Dieet: </span>
+                      <span className="text-green-700">{user.preferences.dietaryRestrictions.slice(0, 2).join(', ')}{user.preferences.dietaryRestrictions.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  {user.preferences?.dislikedIngredients?.length > 0 && (
+                    <div>
+                      <span className="font-medium text-gray-800">❌ Vermijd: </span>
+                      <span className="text-gray-700">{user.preferences.dislikedIngredients.slice(0, 2).join(', ')}{user.preferences.dislikedIngredients.length > 2 ? '...' : ''}</span>
+                    </div>
+                  )}
+                  
+                  <div className="text-blue-600 italic pt-1">
+                    💡 Wijzig in <a href="/voorkeuren" className="underline hover:no-underline font-medium">voorkeuren</a> • <a href="/keuken" className="underline hover:no-underline font-medium">keuken setup</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
