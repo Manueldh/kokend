@@ -14,9 +14,24 @@ import { apiUrl } from "../../../lib/api";
 
 function ReceptDetailContent({ params }) {
   const { user } = useUser();
-  // unwrap params (may be a Promise in this Next.js version)
-  const unwrappedParams = React.use(params);
-  const { id } = unwrappedParams;
+  
+  // Handle params compatibility for different Next.js versions
+  const [id, setId] = useState(null);
+  
+  useEffect(() => {
+    const getParams = async () => {
+      try {
+        // Try to unwrap if it's a Promise (Next.js 13+)
+        const resolvedParams = await Promise.resolve(params);
+        setId(resolvedParams.id);
+      } catch {
+        // Fallback for older versions or if params is already resolved
+        setId(params?.id);
+      }
+    };
+    
+    getParams();
+  }, [params]);
   const [recept, setRecept] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completedSteps, setCompletedSteps] = useState([]);
@@ -31,6 +46,8 @@ function ReceptDetailContent({ params }) {
   ]);
 
   useEffect(() => {
+    if (!id) return; // Don't fetch if id is not available yet
+    
     const fetchRecept = async () => {
       try {
         const res = await fetch(apiUrl(`/api/recipes/${id}`));

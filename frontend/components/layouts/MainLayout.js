@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChefHat, Home, Settings, BookOpen, LogOut, User, Heart, Trophy } from "lucide-react";
 import { useUser } from "@/components/UserProvider";
 import { usePathname } from 'next/navigation';
+import MobileErrorBoundary from '../MobileErrorBoundary';
 
 export default function MainLayout({ children }) {
   const { user, isAuthenticated, logout } = useUser();
@@ -121,7 +122,9 @@ export default function MainLayout({ children }) {
 
       {/* Main Content - Add bottom padding on mobile for bottom nav */}
       <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isLoginPage ? '' : 'py-8 pb-24 min-[1000px]:pb-8'}`}>
-        {children}
+        <MobileErrorBoundary>
+          {children}
+        </MobileErrorBoundary>
       </main>
 
       {/* Mobile Bottom Navigation - Only visible <1000px */}

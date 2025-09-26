@@ -6,8 +6,13 @@ const getApiBaseUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // Anders bepaal op basis van de huidige URL
-  if (typeof window !== 'undefined') {
+  // Server-side rendering fallback
+  if (typeof window === 'undefined') {
+    return 'https://kokend.onrender.com';
+  }
+  
+  // Client-side URL detection
+  try {
     const hostname = window.location.hostname;
     
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -17,10 +22,17 @@ const getApiBaseUrl = () => {
     if (hostname.includes('vercel.app')) {
       return 'https://kokend.onrender.com';
     }
+    
+    // Production domain
+    if (hostname === 'kokend.vercel.app') {
+      return 'https://kokend.onrender.com';
+    }
+  } catch (error) {
+    console.warn('Error detecting hostname:', error);
   }
   
-  // Fallback
-  return 'http://localhost:3001';
+  // Fallback for mobile/unknown environments
+  return 'https://kokend.onrender.com';
 };
 
 const API_BASE_URL = getApiBaseUrl();
